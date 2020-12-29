@@ -158,6 +158,7 @@ TEST_CASE(self_observers)
     EXPECT_EQ(SelfAwareObject::num_destroyed, 0u);
 
     object->unref();
+    ASSERT(object.is_null());
     EXPECT_EQ(SelfAwareObject::num_destroyed, 1u);
 }
 
