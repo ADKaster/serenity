@@ -112,6 +112,7 @@ endif()
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
     # Clang's default constexpr-steps limit is 1048576(2^20), GCC doesn't have one
     add_compile_options(-Wno-overloaded-virtual -Wno-user-defined-literals -fconstexpr-steps=16777216)
+    add_compile_options(-fcoroutines-ts)
 
     if (ENABLE_FUZZER_SANITIZER)
         add_compile_options(-fsanitize=fuzzer -fno-omit-frame-pointer)
@@ -120,6 +121,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
 
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     add_compile_options(-Wno-expansion-to-defined)
+    add_compile_options(-fcoroutines)
 endif()
 
 # These are here to support Fuzzili builds further down the directory stack
