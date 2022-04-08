@@ -70,8 +70,8 @@ echo PREFIX is "$PREFIX"
 
 mkdir -p "$DIR/Tarballs"
 
-LLVM_VERSION="13.0.0"
-LLVM_MD5SUM="bfc5191cbe87954952d25c6884596ccb"
+LLVM_VERSION="14.0.0"
+LLVM_MD5SUM="c9d243fe61e55efdbb7f81ae766a092a"
 LLVM_NAME="llvm-project-$LLVM_VERSION.src"
 LLVM_PKG="$LLVM_NAME.tar.xz"
 LLVM_URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-$LLVM_VERSION/$LLVM_PKG"
@@ -209,13 +209,11 @@ pushd "$DIR/Tarballs"
             git init > /dev/null
             git add . > /dev/null
             git commit -am "BASE" > /dev/null
-            git am "$DIR"/Patches/llvm-backport-objcopy-update-section.patch > /dev/null
-            git apply "$DIR"/Patches/llvm.patch > /dev/null
+            git am "$DIR"/Patches/llvm.patch > /dev/null
         else
             patch -p1 < "$DIR/Patches/llvm.patch" > /dev/null
-            patch -p1 < "$DIR/Patches/llvm-backport-objcopy-update-section.patch" > /dev/null
         fi
-        $MD5SUM "$DIR/Patches/llvm.patch" "$DIR/Patches/llvm-backport-objcopy-update-section.patch" > .patch.applied
+        $MD5SUM "$DIR/Patches/llvm.patch" > .patch.applied
     popd
 popd
 
