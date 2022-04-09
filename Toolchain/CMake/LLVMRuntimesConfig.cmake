@@ -29,7 +29,7 @@ set(LLVM_DEFAULT_TARGET_TRIPLE ${target_triple} CACHE STRING "")
 set(LLVM_BINARY_DIR "${SERENITY_TOOLCHAIN_ROOT}" CACHE PATH "")
 
 set(CMAKE_SYSROOT "${SERENITY_BUILD_DIR}/Root" CACHE PATH "")
-set(compiler_flags "-nostdlib -nostdlib++")
+set(compiler_flags "-nostdlib -nostdlib++ -fPIC")
 
 set(CMAKE_C_COMPILER "${SERENITY_TOOLCHAIN_ROOT}/bin/clang" CACHE PATH "")
 set(CMAKE_C_COMPILER_WORKS ON CACHE BOOL "")
