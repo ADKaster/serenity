@@ -101,8 +101,11 @@ if (ENABLE_FUZZERS)
 endif()
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
-    # Clang's default constexpr-steps limit is 1048576(2^20), GCC doesn't have one
-    add_compile_options(-Wno-overloaded-virtual -Wno-user-defined-literals -fconstexpr-steps=16777216)
+    add_compile_options(-Wno-overloaded-virtual -Wno-user-defined-literals)
+    if (NOT MSVC)
+        # Clang's default constexpr-steps limit is 1048576(2^20), GCC doesn't have one
+        add_compile_options(-fconstexpr-steps=16777216)
+    endif()
     # FIXME: Re-enable this check when the warning stops triggering, or document why we can't stop it from triggering.
     # For now, there is a lot of unused private fields in LibWeb that trigger this that could be removed.
     # See issue #14137 for details
@@ -260,8 +263,11 @@ endif()
 # Note: AK is included in LibCore for the host build instead of LibC per the target build
 file(GLOB AK_SOURCES CONFIGURE_DEPENDS "../../AK/*.cpp")
 file(GLOB LIBCORE_SOURCES CONFIGURE_DEPENDS "../../Userland/Libraries/LibCore/*.cpp")
-if (ANDROID)
-    list(REMOVE_ITEM LIBCORE_SOURCES "${CMAKE_CURRENT_LIST_DIR}/../../Userland/Libraries/LibCore/Account.cpp")
+if (ANDROID OR MSVC)
+    list(REMOVE_ITEM LIBCORE_SOURCES
+        "${CMAKE_CURRENT_LIST_DIR}/../../Userland/Libraries/LibCore/Account.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/../../Userland/Libraries/LibCore/Group.cpp"
+    )
 endif()
 lagom_lib(Core core
     SOURCES ${AK_SOURCES} ${LIBCORE_SOURCES}
@@ -269,6 +275,13 @@ lagom_lib(Core core
 )
 if (NOT APPLE AND NOT ANDROID AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "OpenBSD")
     target_link_libraries(LibCore crypt) # LibCore::Account uses crypt() but it's not in libcrypt on macOS
+endif()
+if (MSVC)
+    # Use serenity's getopt for Windows
+    target_sources(LibCore PRIVATE "../../Userland/Libraries/LibC/getopt.cpp")
+    set_source_files_properties("../../Userland/Libraries/LibC/getopt.cpp" PROPERTIES
+        INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/../../Userland/Libraries/LibC"
+    )
 endif()
 
 # LibMain

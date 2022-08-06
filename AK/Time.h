@@ -16,6 +16,11 @@
 struct timeval;
 struct timespec;
 
+// ... except for windows, where we need Time.h for clock_t
+#if defined(AK_OS_WINDOWS)
+#    include <time.h>
+#endif
+
 namespace AK {
 
 // Concept to detect types which look like timespec without requiring the type.

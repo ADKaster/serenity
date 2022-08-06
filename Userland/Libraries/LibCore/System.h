@@ -10,23 +10,31 @@
 
 #include <AK/Error.h>
 #include <AK/StringView.h>
-#include <dirent.h>
 #include <fcntl.h>
+#include <signal.h>
+#include <sys/stat.h>
+#include <time.h>
+
+#if defined(AK_OS_WINDOWS)
+#define WIN32_LEAN_AND_MEAN
+#include <winsock2.h>
+#include <sys/types.h>
+using sighandler_t = _crt_signal_t;
+#else
+#include <dirent.h>
 #include <grp.h>
 #include <pwd.h>
-#include <signal.h>
 #include <spawn.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
-#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/utsname.h>
 #include <sys/wait.h>
 #include <termios.h>
-#include <time.h>
 #include <utime.h>
+#endif
 
-#if !defined(AK_OS_BSD_GENERIC) && !defined(AK_OS_ANDROID)
+#if !defined(AK_OS_BSD_GENERIC) && !defined(AK_OS_ANDROID) && !defined(AK_OS_WINDOWS)
 #    include <shadow.h>
 #endif
 
@@ -83,7 +91,7 @@ ErrorOr<Optional<struct spwd>> getspent();
 ErrorOr<Optional<struct spwd>> getspnam(StringView name);
 #endif
 
-#ifndef AK_OS_MACOS
+#if !defined(AK_OS_MACOS) && !defined(AK_OS_WINDOWS)
 ErrorOr<int> accept4(int sockfd, struct sockaddr*, socklen_t*, int flags);
 #endif
 

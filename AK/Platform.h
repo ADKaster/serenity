@@ -42,6 +42,10 @@
 #endif
 // clang-format on
 
+#if defined(_WIN32)
+#   define AK_OS_WINDOWS
+#endif
+
 #define ARCH(arch) (defined(AK_ARCH_##arch) && AK_ARCH_##arch)
 
 #if ARCH(I386) || ARCH(X86_64)
@@ -107,7 +111,7 @@
 #    define ASAN_UNPOISON_MEMORY_REGION(addr, size)
 #endif
 
-#ifndef __serenity__
+#if !defined(__serenity__) && !defined(AK_OS_WINDOWS)
 // On macOS (at least Mojave), Apple's version of this header is not wrapped
 // in extern "C".
 #    ifdef AK_OS_MACOS
@@ -119,9 +123,11 @@ extern "C" {
 #    ifdef AK_OS_MACOS
 };
 #    endif
+#elif defined(AK_OS_WINDOWS)
+#    define PAGE_SIZE (4096) // Is this the right fudge value?
 #endif
 
-#ifdef AK_OS_BSD_GENERIC
+#if defined(AK_OS_BSD_GENERIC) || defined(AK_OS_WINDOWS)
 #    define CLOCK_MONOTONIC_COARSE CLOCK_MONOTONIC
 #    define CLOCK_REALTIME_COARSE CLOCK_REALTIME
 #endif

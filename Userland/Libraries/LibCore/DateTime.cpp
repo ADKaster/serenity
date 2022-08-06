@@ -12,6 +12,12 @@
 #include <errno.h>
 #include <time.h>
 
+#if defined(AK_OS_WINDOWS)
+#    define localtime_r(src, dest) localtime_s(dest, src)
+#    define gmtime_r(src, dest) gmtime_s(dest, src)
+#    define tzname _tzname
+#endif
+
 namespace Core {
 
 DateTime DateTime::now()

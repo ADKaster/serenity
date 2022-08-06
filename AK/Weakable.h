@@ -14,7 +14,15 @@
 #    include <AK/RefCounted.h>
 #    include <AK/RefPtr.h>
 #    include <AK/StdLibExtras.h>
+#    ifndef AK_OS_WINDOWS
 #    include <sched.h>
+#    else
+     // Forward declare to avoid pulling Windows.h into every file in existence
+extern "C" __declspec(dllimport) void __stdcall Sleep(unsigned long);
+#        ifndef sched_yield
+#            define sched_yield() Sleep(0)
+#        endif
+#    endif
 
 namespace AK {
 

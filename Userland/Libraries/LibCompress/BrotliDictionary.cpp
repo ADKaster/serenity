@@ -19,7 +19,11 @@ asm(".section .rodata\n"
     "brotli_dictionary_data:\n");
 #endif
 asm(".incbin \"LibCompress/BrotliDictionaryData.bin\"\n"
-    ".previous\n");
+#ifdef AK_OS_WINDOWS
+);
+#else
+".previous\n");
+#endif
 
 namespace Compress {
 

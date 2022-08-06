@@ -7,7 +7,11 @@
 #pragma once
 
 #include <AK/Time.h>
-#include <sys/time.h>
+#ifdef AK_OS_WINDOWS
+#    include <winsock.h>
+#else
+#    include <sys/time.h>
+#endif
 
 namespace Core {
 

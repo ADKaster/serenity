@@ -8,11 +8,17 @@
 #pragma once
 
 #include <AK/IPv4Address.h>
+#include <string.h>
+#ifndef AK_OS_WINDOWS
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <string.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#else
+#define WIN32_LEAN_AND_MEAN
+#include <winsock2.h>
+#include <afunix.h>
+#endif
 
 namespace Core {
 
@@ -67,7 +73,7 @@ public:
     {
         VERIFY(type() == Type::Local);
         sockaddr_un address;
-        address.sun_family = AF_LOCAL;
+        address.sun_family = AF_UNIX;
         bool fits = m_local_address.copy_characters_to_buffer(address.sun_path, sizeof(address.sun_path));
         if (!fits)
             return {};

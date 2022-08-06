@@ -20,7 +20,7 @@
 #include <LibCore/Notifier.h>
 #include <LibCore/SocketAddress.h>
 #include <errno.h>
-#include <netdb.h>
+#include <sys/types.h>
 
 namespace Core::Stream {
 
@@ -449,7 +449,9 @@ public:
 
     ErrorOr<int> receive_fd(int flags);
     ErrorOr<void> send_fd(int fd);
+#ifndef AK_OS_WINDOWS
     ErrorOr<pid_t> peer_pid() const;
+#endif
     ErrorOr<Bytes> read_without_waiting(Bytes buffer);
 
     /// Release the fd associated with this LocalSocket. After the fd is
