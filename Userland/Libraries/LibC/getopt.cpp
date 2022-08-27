@@ -6,7 +6,11 @@
 
 #include <AK/StringView.h>
 #include <AK/Vector.h>
+#ifdef _WIN32
+#include <LibC/getopt.h>
+#else
 #include <getopt.h>
+#endif
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>

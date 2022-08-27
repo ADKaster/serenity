@@ -5,12 +5,18 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
-#include "AK/JsonObject.h"
+#include <AK/JsonObject.h>
 #include <AK/Format.h>
 #include <AK/StringBuilder.h>
 #include <LibCore/ArgsParser.h>
 #include <LibCore/Version.h>
+#ifdef _WIN32
+#    define __BEGIN_DECLS extern "C" {
+#    define __END_DECLS }
+#include <LibC/getopt.h>
+#else
 #include <getopt.h>
+#endif
 #include <limits.h>
 #include <math.h>
 #include <stdio.h>

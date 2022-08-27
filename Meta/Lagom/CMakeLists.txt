@@ -267,6 +267,8 @@ if (ANDROID OR MSVC)
     list(REMOVE_ITEM LIBCORE_SOURCES
         "${CMAKE_CURRENT_LIST_DIR}/../../Userland/Libraries/LibCore/Account.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../../Userland/Libraries/LibCore/Group.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/../../Userland/Libraries/LibCore/FilePermissionsMask.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/../../Userland/Libraries/LibCore/GetPassword.cpp"
     )
 endif()
 lagom_lib(Core core

@@ -18,8 +18,10 @@
 #if defined(AK_OS_WINDOWS)
 #define WIN32_LEAN_AND_MEAN
 #include <winsock2.h>
+#include <WS2tcpip.h>
 #include <sys/types.h>
 using sighandler_t = _crt_signal_t;
+#define AT_FDCWD -1
 #else
 #include <dirent.h>
 #include <grp.h>
@@ -112,10 +114,13 @@ ErrorOr<void> close(int fd);
 ErrorOr<void> ftruncate(int fd, off_t length);
 ErrorOr<struct stat> stat(StringView path);
 ErrorOr<struct stat> lstat(StringView path);
+ErrorOr<off_t> lseek(int fd, off_t, int whence);
 ErrorOr<ssize_t> read(int fd, Bytes buffer);
 ErrorOr<ssize_t> write(int fd, ReadonlyBytes buffer);
+#ifndef _WIN32
 ErrorOr<void> kill(pid_t, int signal);
 ErrorOr<void> killpg(int pgrp, int signal);
+#endif
 ErrorOr<int> dup(int source_fd);
 ErrorOr<int> dup2(int source_fd, int destination_fd);
 ErrorOr<String> ptsname(int fd);
@@ -123,9 +128,14 @@ ErrorOr<String> gethostname();
 ErrorOr<void> sethostname(StringView);
 ErrorOr<String> getcwd();
 ErrorOr<void> ioctl(int fd, unsigned request, ...);
+
+#ifndef _WIN32
 ErrorOr<struct termios> tcgetattr(int fd);
 ErrorOr<void> tcsetattr(int fd, int optional_actions, struct termios const&);
-ErrorOr<int> tcsetpgrp(int fd, pid_t pgrp);
+ErrorOr<int> tcsetpgrp(int fd, pid_t pgrp)
+ErrorOr<int> posix_openpt(int flags);
+ErrorOr<void> grantpt(int fildes);
+ErrorOr<void> unlockpt(int fildes);;
 ErrorOr<void> chmod(StringView pathname, mode_t mode);
 ErrorOr<void> lchown(StringView pathname, uid_t uid, gid_t gid);
 ErrorOr<void> chown(StringView pathname, uid_t uid, gid_t gid);
@@ -133,11 +143,18 @@ ErrorOr<Optional<struct passwd>> getpwnam(StringView name);
 ErrorOr<Optional<struct group>> getgrnam(StringView name);
 ErrorOr<Optional<struct passwd>> getpwuid(uid_t);
 ErrorOr<Optional<struct group>> getgrgid(gid_t);
+ErrorOr<Vector<gid_t>> getgroups();
 ErrorOr<void> clock_settime(clockid_t clock_id, struct timespec* ts);
 ErrorOr<pid_t> posix_spawn(StringView path, posix_spawn_file_actions_t const* file_actions, posix_spawnattr_t const* attr, char* const arguments[], char* const envp[]);
 ErrorOr<pid_t> posix_spawnp(StringView path, posix_spawn_file_actions_t* const file_actions, posix_spawnattr_t* const attr, char* const arguments[], char* const envp[]);
-ErrorOr<off_t> lseek(int fd, off_t, int whence);
 ErrorOr<void> endgrent();
+
+ErrorOr<pid_t> fork();
+enum class SearchInPath {
+    No,
+    Yes,
+};
+ErrorOr<void> exec(StringView filename, Span<StringView> arguments, SearchInPath, Optional<Span<StringView>> environment = {});
 
 struct WaitPidResult {
     pid_t pid;
@@ -151,16 +168,18 @@ ErrorOr<void> setegid(gid_t);
 ErrorOr<void> setpgid(pid_t pid, pid_t pgid);
 ErrorOr<pid_t> setsid();
 ErrorOr<void> drop_privileges();
+#endif
 ErrorOr<bool> isatty(int fd);
 ErrorOr<void> link(StringView old_path, StringView new_path);
 ErrorOr<void> symlink(StringView target, StringView link_path);
 ErrorOr<void> mkdir(StringView path, mode_t);
 ErrorOr<void> chdir(StringView path);
 ErrorOr<void> rmdir(StringView path);
-ErrorOr<pid_t> fork();
 ErrorOr<int> mkstemp(Span<char> pattern);
 ErrorOr<void> fchmod(int fd, mode_t mode);
+#ifndef _WIN32
 ErrorOr<void> fchown(int fd, uid_t, gid_t);
+#endif
 ErrorOr<void> rename(StringView old_path, StringView new_path);
 ErrorOr<void> unlink(StringView path);
 ErrorOr<void> utime(StringView path, Optional<struct utimbuf>);
@@ -170,11 +189,6 @@ ErrorOr<Array<int, 2>> pipe2(int flags);
 ErrorOr<void> adjtime(const struct timeval* delta, struct timeval* old_delta);
 #endif
 ErrorOr<String> find_file_in_path(StringView filename);
-enum class SearchInPath {
-    No,
-    Yes,
-};
-ErrorOr<void> exec(StringView filename, Span<StringView> arguments, SearchInPath, Optional<Span<StringView>> environment = {});
 
 ErrorOr<int> socket(int domain, int type, int protocol);
 ErrorOr<void> bind(int sockfd, struct sockaddr const*, socklen_t);
@@ -192,14 +206,12 @@ ErrorOr<void> getsockopt(int sockfd, int level, int option, void* value, socklen
 ErrorOr<void> setsockopt(int sockfd, int level, int option, void const* value, socklen_t value_size);
 ErrorOr<void> getsockname(int sockfd, struct sockaddr*, socklen_t*);
 ErrorOr<void> getpeername(int sockfd, struct sockaddr*, socklen_t*);
+#ifndef _WIN32
 ErrorOr<void> socketpair(int domain, int type, int protocol, int sv[2]);
-ErrorOr<Vector<gid_t>> getgroups();
 ErrorOr<void> mknod(StringView pathname, mode_t mode, dev_t dev);
 ErrorOr<void> mkfifo(StringView pathname, mode_t mode);
+#endif
 ErrorOr<void> setenv(StringView, StringView, bool);
-ErrorOr<int> posix_openpt(int flags);
-ErrorOr<void> grantpt(int fildes);
-ErrorOr<void> unlockpt(int fildes);
 ErrorOr<void> access(StringView pathname, int mode);
 
 }

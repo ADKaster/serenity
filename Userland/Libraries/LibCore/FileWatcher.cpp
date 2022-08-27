@@ -6,6 +6,9 @@
  */
 
 #include "FileWatcher.h"
+
+// Only supported in serenity mode because we use InodeWatcher syscalls
+#ifdef __serenity__
 #include <AK/Debug.h>
 #include <AK/LexicalPath.h>
 #include <AK/NonnullRefPtr.h>
@@ -19,9 +22,6 @@
 #include <unistd.h>
 
 namespace Core {
-
-// Only supported in serenity mode because we use InodeWatcher syscalls
-#ifdef __serenity__
 
 static Optional<FileWatcherEvent> get_event_from_fd(int fd, HashMap<unsigned, String> const& wd_to_path)
 {
@@ -207,7 +207,8 @@ FileWatcher::~FileWatcher()
 }
 
 #else
-// FIXME: Implement Core::FileWatcher for linux, macOS, and *BSD
+namespace Core {
+// FIXME: Implement Core::FileWatcher for linux, macOS, *BSD, and Windows
 FileWatcher::~FileWatcher() { }
 FileWatcher::FileWatcher(int watcher_fd, NonnullRefPtr<Notifier> notifier)
     : FileWatcherBase(watcher_fd)

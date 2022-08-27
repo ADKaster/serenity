@@ -110,7 +110,7 @@ inline void iterate_directory_recursively(String const& directory_path, Callback
         struct stat st = {};
         if (fstatat(directory_iterator.fd(), name.characters(), &st, AT_SYMLINK_NOFOLLOW) < 0)
             continue;
-        bool is_directory = S_ISDIR(st.st_mode);
+        bool is_directory = S_ISDIR(st.st_mode);                                                                                                                   
         auto full_path = String::formatted("{}/{}", directory_path, name);
         if (is_directory && name != "/Fixtures"sv) {
             iterate_directory_recursively(full_path, callback);

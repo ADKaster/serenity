@@ -8,6 +8,9 @@ add_compile_options(-Wno-unknown-warning-option)
 if (MSVC)
     add_compile_options(-Wno-expansion-to-defined)  # FIXME: Complain to thakis about this one
     add_compile_definitions(_CRT_SECURE_NO_WARNINGS) # Go away with your _s replacements
+    add_compile_definitions(_CRT_NONSTDC_NO_WARNINGS) # POSIX names are just fine, thanks
+    add_compile_definitions(NOMINMAX) # ...really?
+    add_compile_definitions(NAME_MAX=255)
 else()
     add_compile_options(-fdiagnostics-color=always)
     add_compile_options(-fsigned-char)

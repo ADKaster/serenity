@@ -26,8 +26,6 @@
 #include <LibCore/System.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <sched.h>
-#include <sys/mman.h>
 
 namespace Core {
 
@@ -224,4 +222,13 @@ private:
     String m_name {};
 };
 
+}
+
+namespace IPC {
+template<typename T, size_t Size>
+Encoder& operator<<(Encoder& enc, Core::SharedSingleProducerCircularQueue<T, Size> const& queue)
+{
+    enc << IPC::File(queue.fd());
+    return enc;
+}
 }

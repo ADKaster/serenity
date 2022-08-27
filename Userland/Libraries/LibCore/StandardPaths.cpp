@@ -8,12 +8,31 @@
 #include <AK/String.h>
 #include <AK/StringBuilder.h>
 #include <LibCore/StandardPaths.h>
-#include <pwd.h>
 #include <stdlib.h>
+#ifndef _WIN32
+#include <pwd.h>
 #include <unistd.h>
+#endif
 
 namespace Core {
 
+#ifdef _WIN32
+String StandardPaths::home_directory()
+{
+    auto* home_env = getenv("USERPROFILE");
+    VERIFY(home_env != nullptr);
+
+    return home_env;
+}
+
+String StandardPaths::tempfile_directory()
+{
+    auto* temp_env = getenv("TEMP");
+    VERIFY(temp_env != nullptr);
+
+    return temp_env;
+}
+#else
 String StandardPaths::home_directory()
 {
     if (auto* home_env = getenv("HOME"))
@@ -24,6 +43,12 @@ String StandardPaths::home_directory()
     endpwent();
     return LexicalPath::canonicalized_path(path);
 }
+
+String StandardPaths::tempfile_directory()
+{
+    return "/tmp";
+}
+#endif
 
 String StandardPaths::desktop_directory()
 {
@@ -47,11 +72,6 @@ String StandardPaths::config_directory()
     builder.append(home_directory());
     builder.append("/.config"sv);
     return LexicalPath::canonicalized_path(builder.to_string());
-}
-
-String StandardPaths::tempfile_directory()
-{
-    return "/tmp";
 }
 
 }

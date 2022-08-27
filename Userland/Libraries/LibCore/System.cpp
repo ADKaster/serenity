@@ -17,12 +17,17 @@
 #include <limits.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#ifdef AK_OS_WINDOWS
+#include <windows.h>
+#include <io.h>
+#else
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/ptrace.h>
 #include <sys/time.h>
 #include <termios.h>
 #include <unistd.h>
+#endif
 
 #ifdef __serenity__
 #    include <LibSystem/syscall.h>
@@ -344,6 +349,38 @@ ErrorOr<int> openat(int fd, StringView path, int options, mode_t mode)
     Syscall::SC_open_params params { fd, { path.characters_without_null_termination(), path.length() }, options, mode };
     int rc = syscall(SC_open, &params);
     HANDLE_SYSCALL_RETURN_VALUE("open", rc, rc);
+#elif defined(AK_OS_WINDOWS)
+    if (fd == AT_FDCWD) {
+        String path_string = path;
+        int rc = ::open(path_string.characters(), options, mode);
+        if (rc < 0)
+            return Error::from_syscall("open"sv, -errno);
+        return rc;
+    }
+    HANDLE file_handle = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
+    if (!file_handle)
+        return Error::from_syscall("open"sv, -EINVAL);
+    char buf[MAX_PATH];
+    String final_path;
+    DWORD rc = GetFinalPathNameByHandle(file_handle, buf, sizeof(buf), FILE_NAME_NORMALIZED | VOLUME_NAME_NT);
+    if (rc < 0) {
+        auto err = GetLastError();
+        if (err != ERROR_NOT_ENOUGH_MEMORY)
+            return Error::from_syscall("open"sv, err);
+        auto byte_buffer = TRY(ByteBuffer::create_uninitialized(rc));
+        Bytes bytes = byte_buffer.bytes();
+        rc = GetFinalPathNameByHandle(file_handle, reinterpret_cast<char*>(bytes.data()), bytes.size(), FILE_NAME_NORMALIZED | VOLUME_NAME_NT);
+        if (rc < 0) {
+            return Error::from_syscall("open"sv, GetLastError());
+        StringView parent_view(bytes.data(), rc);
+        final_path = String::formatted("{}/{}", parent_view, path);
+    } else {
+        final_path = String::formatted("{}/{}", buf, path);
+    }
+    int rc = ::open(final_path.characters(), options, mode);
+    if (rc < 0)
+        return Error::from_syscall("open"sv, GetLastError());
+    return rc;
 #else
     // NOTE: We have to ensure that the path is null-terminated.
     String path_string = path;

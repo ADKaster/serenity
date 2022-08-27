@@ -9,7 +9,6 @@
 #include <AK/LexicalPath.h>
 #include <AK/Optional.h>
 #include <AK/String.h>
-#include <spawn.h>
 
 namespace Core {
 

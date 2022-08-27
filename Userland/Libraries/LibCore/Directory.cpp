@@ -7,7 +7,10 @@
 #include "Directory.h"
 #include "DirIterator.h"
 #include "System.h"
+
+#ifndef AK_OS_WINDOWS
 #include <dirent.h>
+#endif
 
 namespace Core {
 

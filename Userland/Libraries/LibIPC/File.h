@@ -9,7 +9,11 @@
 
 #include <AK/Noncopyable.h>
 #include <AK/StdLibExtras.h>
-#include <unistd.h>
+#ifdef AK_OS_WINDOWS
+#  include <io.h>
+#else
+#  include <unistd.h>
+#endif
 
 namespace IPC {
 

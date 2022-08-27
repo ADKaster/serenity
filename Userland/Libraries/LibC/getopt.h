@@ -6,7 +6,9 @@
 
 #pragma once
 
+#ifndef _WIN32
 #include <sys/cdefs.h>
+#endif
 
 __BEGIN_DECLS
 

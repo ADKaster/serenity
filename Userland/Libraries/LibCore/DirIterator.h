@@ -7,8 +7,12 @@
 #pragma once
 
 #include <AK/String.h>
-#include <dirent.h>
 #include <string.h>
+#ifdef _WIN32
+#define DIR void
+#else
+#include <dirent.h>
+#endif
 
 namespace Core {
 

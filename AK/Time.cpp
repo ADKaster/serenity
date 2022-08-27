@@ -12,7 +12,6 @@
 #    include <Kernel/UnixTypes.h>
 #else
 #    if defined(AK_OS_WINDOWS)
-#        define NOMINMAX
 #        define WIN32_LEAN_AND_MEAN
 #        include <winsock.h> // for struct timeval
 #        include <profileapi.h>

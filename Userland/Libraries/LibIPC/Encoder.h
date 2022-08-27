@@ -8,7 +8,6 @@
 
 #include <AK/Concepts.h>
 #include <AK/StdLibExtras.h>
-#include <LibCore/SharedCircularQueue.h>
 #include <LibIPC/Forward.h>
 #include <LibIPC/Message.h>
 
@@ -75,13 +74,6 @@ public:
         *this << (u64)vector.size();
         for (auto& value : vector)
             *this << value;
-        return *this;
-    }
-
-    template<typename T, size_t Size>
-    Encoder& operator<<(Core::SharedSingleProducerCircularQueue<T, Size> const& queue)
-    {
-        *this << IPC::File(queue.fd());
         return *this;
     }
 
