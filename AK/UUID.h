@@ -32,7 +32,7 @@ public:
     ~UUID() = default;
 
     bool operator==(const UUID&) const;
-    bool operator!=(const UUID& other) const { return !(*this == other); }
+    bool operator!=(const UUID& other) const = default;
     bool operator<=(const UUID&) const = delete;
     bool operator>=(const UUID&) const = delete;
     bool operator<(const UUID&) const = delete;
