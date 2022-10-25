@@ -44,7 +44,11 @@ MappedFile::MappedFile(void* ptr, size_t size)
 
 MappedFile::~MappedFile()
 {
-    MUST(Core::System::munmap(m_data, m_size));
+    auto res = Core::System::munmap(m_data, m_size);
+    if (res.is_error()) {
+        dbgln("cannot unmap file because: {}", res.error());
+        ;
+    }
 }
 
 }

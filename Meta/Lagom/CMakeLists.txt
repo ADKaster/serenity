@@ -93,6 +93,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_INSTALL_MESSAGE NEVER)
 
+if (EMSCRIPTEN)
+    set(CMAKE_EXECUTABLE_SUFFIX ".html")
+    add_compile_options(-gsource-map)
+    add_link_options(--emrun "SHELL:-s ALLOW_MEMORY_GROWTH")
+    add_compile_options(-sPROXY_POSIX_SOCKETS -sUSE_PTHREADS -sPROXY_TO_PTHREAD)
+endif()
+
 if (ENABLE_ADDRESS_SANITIZER)
     add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
     set(LINKER_FLAGS "${LINKER_FLAGS} -fsanitize=address")
@@ -289,7 +296,7 @@ endif()
 # Create mostly empty targets for system libraries we don't need to build for Lagom
 add_library(LibC INTERFACE)
 add_library(LibCrypt INTERFACE)
-if (NOT APPLE AND NOT ANDROID AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "OpenBSD")
+if (NOT APPLE AND NOT ANDROID AND NOT EMSCRIPTEN AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "OpenBSD")
     target_link_libraries(LibCrypt INTERFACE crypt) # LibCore::Account uses crypt() but it's not in libcrypt on macOS
 endif()
 add_library(NoCoverage INTERFACE)
@@ -385,7 +392,7 @@ if (BUILD_LAGOM)
 
     # FIXME: Excluding arm64 is a temporary hack to circumvent a build problem
     #        for Lagom on Apple M1
-    if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
+    if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm64" AND NOT EMSCRIPTEN)
         # FIXME: Create a LIBELF_SOURCES macro similar to AK
         file(GLOB LIBELF_SOURCES CONFIGURE_DEPENDS "../../Userland/Libraries/LibELF/*.cpp")
         # There's no way we can reliably make the dynamic loading classes cross platform
@@ -436,12 +443,14 @@ if (BUILD_LAGOM)
         target_link_libraries(TestJson LibCore)
 
         # Lagom Utilities
-        add_executable(adjtime ../../Userland/Utilities/adjtime.cpp)
-        target_link_libraries(adjtime LibCore LibMain)
+        if (NOT EMSCRIPTEN)
+            add_executable(adjtime ../../Userland/Utilities/adjtime.cpp)
+            target_link_libraries(adjtime LibCore LibMain)
+        endif()
 
         # FIXME: Excluding arm64 is a temporary hack to circumvent a build problem
         #        for Lagom on Apple M1
-        if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
+        if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm64" AND NOT EMSCRIPTEN)
             add_executable(disasm ../../Userland/Utilities/disasm.cpp)
             target_link_libraries(disasm LibCore LibELF LibX86 LibMain)
         endif()
@@ -452,6 +461,11 @@ if (BUILD_LAGOM)
         if (ENABLE_LAGOM_LIBWEB)
             add_executable(headless-browser ../../Userland/Utilities/headless-browser.cpp)
             target_link_libraries(headless-browser LibWeb LibWebSocket LibHTTP LibJS LibGfx LibMain)
+            if (EMSCRIPTEN)
+                target_compile_options(headless-browser PRIVATE -sPROXY_POSIX_SOCKETS -sUSE_PTHREADS -sPROXY_TO_PTHREAD)
+                target_link_options(headless-browser PRIVATE "SHELL:--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/../../Base/res@resources"
+                    -lwebsocket.js -sPROXY_POSIX_SOCKETS -sUSE_PTHREADS -sPROXY_TO_PTHREAD)
+            endif()
         endif()
 
         add_executable(js ../../Userland/Utilities/js.cpp)
@@ -460,8 +474,10 @@ if (BUILD_LAGOM)
         add_executable(markdown-check ../../Userland/Utilities/markdown-check.cpp)
         target_link_libraries(markdown-check LibMarkdown LibMain)
 
-        add_executable(ntpquery ../../Userland/Utilities/ntpquery.cpp)
-        target_link_libraries(ntpquery LibCore LibMain)
+        if (NOT EMSCRIPTEN)
+            add_executable(ntpquery ../../Userland/Utilities/ntpquery.cpp)
+            target_link_libraries(ntpquery LibCore LibMain)
+        endif()
 
         add_executable(test262-runner ../../Tests/LibJS/test262-runner.cpp)
         target_link_libraries(test262-runner LibJS LibCore)

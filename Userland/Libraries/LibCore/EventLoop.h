@@ -61,6 +61,7 @@ public:
     static EventLoop& current();
 
     bool was_exit_requested() const { return m_exit_requested; }
+    int exit_code() const { return m_exit_code; }
 
     static int register_timer(Object&, int milliseconds, bool should_reload, TimerShouldFireWhenNotVisible);
     static bool unregister_timer(int timer_id);

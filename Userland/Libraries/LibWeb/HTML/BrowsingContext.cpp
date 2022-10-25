@@ -169,6 +169,7 @@ JS::NonnullGCPtr<BrowsingContext> BrowsingContext::create_a_new_browsing_context
         unsafe_context_creation_time,
         verify_cast<WindowEnvironmentSettingsObject>(Bindings::host_defined_environment_settings_object(window->realm())).cross_origin_isolated_capability() == CanUseCrossOriginIsolatedAPIs::Yes);
 
+    dbgln("GOT HERE IN LIBWEB");
     // 13. Let coop be a new cross-origin opener policy.
     auto coop = CrossOriginOpenerPolicy {};
 
@@ -257,6 +258,8 @@ BrowsingContext::BrowsingContext(Page& page, HTML::BrowsingContextContainer* con
             m_cursor_position.node()->layout_node()->set_needs_display();
         }
     });
+
+    dbgln("HERE 1909sdfds");
 }
 
 BrowsingContext::~BrowsingContext() = default;

@@ -4,6 +4,9 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
+#include "AK/IntrusiveList.h"
+#include "LibWeb/Platform/EventLoopPlugin.h"
+#include "LibWeb/Platform/Timer.h"
 #include <AK/Assertions.h>
 #include <AK/ByteBuffer.h>
 #include <AK/Format.h>
@@ -48,6 +51,178 @@
 #include <LibWebSocket/ConnectionInfo.h>
 #include <LibWebSocket/Message.h>
 #include <LibWebSocket/WebSocket.h>
+
+#ifdef AK_OS_EMSCRIPTEN
+#    include <emscripten.h>
+
+class EmscriptenEventLoopPlugin;
+
+class TimerEmscripten : public Web::Platform::Timer {
+public:
+    static NonnullRefPtr<TimerEmscripten> create()
+    {
+        return adopt_ref(*new TimerEmscripten);
+    }
+
+    virtual ~TimerEmscripten() = default;
+
+    virtual void start() override;
+    virtual void start(int interval_ms) override;
+    virtual void restart() override;
+    virtual void restart(int interval_ms) override;
+    virtual void stop() override;
+
+    virtual void set_active(bool) override;
+
+    virtual bool is_active() const override { return m_active; }
+    virtual int interval() const override { return m_interval_ms; }
+    virtual void set_interval(int interval_ms) override
+    {
+        if (m_interval_ms == interval_ms)
+            return;
+        m_interval_ms = interval_ms;
+        m_interval_dirty = true;
+    }
+
+    virtual bool is_single_shot() const override { return m_single_shot; }
+    virtual void set_single_shot(bool single_shot) override { m_single_shot = single_shot; }
+
+private:
+    TimerEmscripten() = default;
+    bool m_active { false };
+    bool m_single_shot { false };
+    bool m_interval_dirty { false };
+    int m_interval_ms { 0 };
+
+    friend class EmscriptenEventLoopPlugin;
+};
+
+void TimerEmscripten::start()
+{
+    start(m_interval_ms);
+}
+
+void TimerEmscripten::start(int interval_ms)
+{
+    if (m_active)
+        return;
+    m_interval_ms = interval_ms;
+    start_timer(interval_ms);
+    m_active = true;
+}
+
+void TimerEmscripten::restart()
+{
+    restart(m_interval_ms);
+}
+
+void TimerEmscripten::restart(int interval_ms)
+{
+    if (m_active)
+        stop();
+    start(interval_ms);
+}
+
+void TimerEmscripten::stop()
+{
+    if (!m_active)
+        return;
+    stop_timer();
+    m_active = false;
+}
+
+void TimerEmscripten::set_active(bool active)
+{
+    if (active)
+        start();
+    else
+        stop();
+}
+
+template<typename>
+struct TrackedFunction;
+
+template<typename R, typename... Args>
+struct TrackedFunction<R(Args...)> {
+    Function<R(Args...)> m_function;
+    bool m_garbage { false };
+
+    R call(Args...);
+};
+
+template<>
+void TrackedFunction<void()>::call()
+{
+    m_function();
+    m_garbage = true;
+}
+
+template<>
+bool TrackedFunction<bool()>::call()
+{
+    auto res = m_function();
+    m_garbage = res;
+    return res;
+}
+
+class EmscriptenEventLoopPlugin : public Web::Platform::EventLoopPlugin {
+public:
+    void spin_until(Function<bool()> goal_condition) override
+    {
+        TrackedFunction<bool()> new_function = {
+            move(goal_condition),
+            false
+        };
+        m_bool_functions.append(move(new_function));
+        auto& func = m_bool_functions.last();
+        emscripten_push_uncounted_main_loop_blocker(spinner, &func);
+    }
+
+    static void spinner(void* arg)
+    {
+        auto* func = static_cast<TrackedFunction<bool()>*>(arg);
+        if (!func->call()) {
+            // Re-register self until event loop action occurs
+            emscripten_push_uncounted_main_loop_blocker(spinner, arg);
+        }
+    }
+
+    void deferred_invoke(Function<void()> function) override
+    {
+        VERIFY(function);
+        TrackedFunction<bool()> new_function = {
+            move(function),
+            false
+        };
+        m_void_functions.append(move(new_function));
+        auto& func = m_void_functions.last();
+        emscripten_async_call(
+            +[](void* arg) {
+                auto* func = static_cast<TrackedFunction<void()>*>(arg);
+                func->call();
+            },
+            &func, 0);
+    }
+
+    NonnullRefPtr<Web::Platform::Timer> create_timer() override
+    {
+        auto timer = TimerEmscripten::create();
+        m_timers.append(*timer);
+        return timer;
+    }
+
+    void quit() override
+    {
+        emscripten_cancel_main_loop();
+    }
+
+private:
+    Vector<TrackedFunction<void()>> m_void_functions;
+    Vector<TrackedFunction<bool()>> m_bool_functions;
+    NonnullRefPtrVector<TimerEmscripten> m_timers;
+};
+
+#endif
 
 class HeadlessBrowserPageClient final : public Web::PageClient {
 public:
@@ -336,7 +511,7 @@ public:
                 }
             };
             m_job->on_finish = [weak_this = make_weak_ptr()](bool success) mutable {
-                Core::deferred_invoke([weak_this, success]() mutable {
+                Web::Platform::EventLoopPlugin::the().deferred_invoke([weak_this, success]() mutable {
                     if (auto strong_this = weak_this.strong_ref()) {
                         ReadonlyBytes response_bytes { strong_this->m_output_stream->bytes().data(), strong_this->m_output_stream->offset() };
                         auto response_buffer = ByteBuffer::copy(response_bytes).release_value_but_fixme_should_propagate_errors();
@@ -415,7 +590,7 @@ public:
                 }
             };
             m_job->on_finish = [weak_this = make_weak_ptr()](bool success) mutable {
-                Core::deferred_invoke([weak_this, success]() mutable {
+                Web::Platform::EventLoopPlugin::the().deferred_invoke([weak_this, success]() mutable {
                     if (auto strong_this = weak_this.strong_ref()) {
                         ReadonlyBytes response_bytes { strong_this->m_output_stream->bytes().data(), strong_this->m_output_stream->offset() };
                         auto response_buffer = ByteBuffer::copy(response_bytes).release_value_but_fixme_should_propagate_errors();
@@ -484,7 +659,7 @@ public:
                 }
             };
             m_job->on_finish = [weak_this = make_weak_ptr()](bool success) mutable {
-                Core::deferred_invoke([weak_this, success]() mutable {
+                Web::Platform::EventLoopPlugin::the().deferred_invoke([weak_this, success]() mutable {
                     if (auto strong_this = weak_this.strong_ref()) {
                         ReadonlyBytes response_bytes { strong_this->m_output_stream->bytes().data(), strong_this->m_output_stream->offset() };
                         auto response_buffer = ByteBuffer::copy(response_bytes).release_value_but_fixme_should_propagate_errors();
@@ -680,6 +855,7 @@ ErrorOr<int> serenity_main(Main::Arguments arguments)
     Web::WebSockets::WebSocketClientManager::initialize(HeadlessWebSocketClientManager::create());
 
     if (!resources_folder.is_empty()) {
+        dbgln("Looking for resources in {}", resources_folder);
         Web::FrameLoader::set_default_favicon_path(LexicalPath::join(resources_folder, "icons/16x16/app-browser.png"sv).string());
         Gfx::FontDatabase::set_default_fonts_lookup_path(LexicalPath::join(resources_folder, "fonts"sv).string());
     }
@@ -692,15 +868,19 @@ ErrorOr<int> serenity_main(Main::Arguments arguments)
             DefaultRootCACertificates::the().reload_certificates(config);
         }
     }
+    dbgln("HERE 1");
 
     Gfx::FontDatabase::set_default_font_query("Katica 10 400 0");
     Gfx::FontDatabase::set_window_title_font_query("Katica 10 700 0");
     Gfx::FontDatabase::set_fixed_width_font_query("Csilla 10 400 0");
+    dbgln("HERE 2");
 
     if (!error_page_url.is_empty())
         Web::FrameLoader::set_error_page_url(error_page_url);
 
+    dbgln("HERE 3");
     auto page_client = HeadlessBrowserPageClient::create();
+    dbgln("HERE 4");
 
     if (!resources_folder.is_empty())
         page_client->setup_palette(Gfx::load_system_theme(LexicalPath::join(resources_folder, "themes/Default.ini"sv).string()));
@@ -713,6 +893,7 @@ ErrorOr<int> serenity_main(Main::Arguments arguments)
     // FIXME: Allow passing these values as arguments
     page_client->set_viewport_rect({ 0, 0, 800, 600 });
     page_client->set_screen_rect({ 0, 0, 800, 600 });
+    dbgln("HERE 5");
 
     dbgln("Taking screenshot after {} seconds !", take_screenshot_after);
     auto timer = Core::Timer::create_single_shot(
@@ -739,5 +920,17 @@ ErrorOr<int> serenity_main(Main::Arguments arguments)
         });
     timer->start();
 
+#ifdef AK_OS_EMSCRIPTEN
+    emscripten_set_main_loop_arg(
+        +[](void* arg) {
+            auto* loop = static_cast<Core::EventLoop*>(arg);
+            if (loop->was_exit_requested())
+                emscripten_cancel_main_loop();
+            loop->pump(Core::EventLoop::WaitMode::PollForEvents);
+        },
+        &event_loop, -1, EM_TRUE);
+    return event_loop.exit_code();
+#else
     return event_loop.exec();
+#endif
 }
