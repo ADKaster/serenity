@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.16)
+cmake_minimum_required (VERSION 3.16...3.24)
 
 project(
     Lagom
@@ -35,6 +35,7 @@ endif()
 
 include(check_for_dependencies)
 include(lagom_options)
+set(CMAKE_FOLDER "Lagom")
 
 if(ENABLE_ALL_THE_DEBUG_MACROS)
     include(all_the_debug_macros)
@@ -201,6 +202,8 @@ function(lagom_lib target_name fs_name)
         SOVERSION "${PROJECT_VERSION_MAJOR}"
         EXPORT_NAME ${library}
         OUTPUT_NAME lagom-${fs_name}
+        XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""
+        XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO"
     )
     target_link_libraries(${target_name} PRIVATE ${LAGOM_LIBRARY_LIBS})
     if (NOT ${target_name} STREQUAL "LibCore")
