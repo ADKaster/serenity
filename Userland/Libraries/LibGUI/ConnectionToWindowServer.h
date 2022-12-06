@@ -13,17 +13,14 @@
 
 namespace GUI {
 
-class ConnectionToWindowServer final
-    : public IPC::ConnectionToServer<WindowClientEndpoint, WindowServerEndpoint>
-    , public WindowClientEndpoint {
-    IPC_CLIENT_CONNECTION(ConnectionToWindowServer, "/tmp/portal/window"sv)
+class ConnectionToWindowServer
+    : public virtual WindowServerProxyBase
+    , public WindowClientStub {
 public:
     static ConnectionToWindowServer& the();
     i32 expose_client_id() { return m_client_id; }
 
 private:
-    ConnectionToWindowServer(NonnullOwnPtr<Core::Stream::LocalSocket>);
-
     virtual void fast_greet(Vector<Gfx::IntRect> const&, u32, u32, u32, Core::AnonymousBuffer const&, String const&, String const&, String const&, Vector<bool> const&, i32) override;
     virtual void paint(i32, Gfx::IntSize const&, Vector<Gfx::IntRect> const&) override;
     virtual void mouse_move(i32, Gfx::IntPoint const&, u32, u32, u32, i32, i32, i32, i32, bool, Vector<String> const&) override;
@@ -59,9 +56,55 @@ private:
     virtual void track_mouse_move(Gfx::IntPoint const&) override;
     virtual void ping() override;
 
+protected:
+    virtual void do_display_link_notification() = 0;
+
     bool m_in_command_palette { false };
     bool m_display_link_notification_pending { false };
     i32 m_client_id;
 };
 
+class ConnectionToWindowServerSerenity final
+    : public ConnectionToWindowServer
+    , public IPC::Connection<WindowClientEndpoint, WindowServerEndpoint>
+    , public WindowServerEndpoint::template Proxy<WindowClientEndpoint> {
+    IPC_CLIENT_CONNECTION(ConnectionToWindowServerSerenity, "/tmp/portal/window"sv)
+public:
+    using ClientStub = typename WindowClientEndpoint::Stub;
+    using IPCProxy = typename WindowServerEndpoint::template Proxy<WindowClientEndpoint>;
+
+private:
+    ConnectionToWindowServerSerenity(NonnullOwnPtr<Core::Stream::LocalSocket> socket);
+
+    virtual void do_display_link_notification() override;
+
+    virtual void die() override
+    {
+        // Override this function if you don't want your app to exit if it loses the connection.
+        exit(0);
+    }
+};
+
+}
+
+namespace AK {
+
+// Yikes! Don't copy this pattern ever!
+template<>
+class Badge<GUI::ConnectionToWindowServer> {
+public:
+    using Type = GUI::ConnectionToWindowServer;
+
+private:
+    friend GUI::ConnectionToWindowServer;
+    friend GUI::ConnectionToWindowServerSerenity;
+
+    constexpr Badge() = default;
+
+    Badge(Badge const&) = delete;
+    Badge& operator=(Badge const&) = delete;
+
+    Badge(Badge&&) = delete;
+    Badge& operator=(Badge&&) = delete;
+};
 }

@@ -30,9 +30,9 @@ namespace GUI {
 
 ConnectionToWindowServer& ConnectionToWindowServer::the()
 {
-    static RefPtr<ConnectionToWindowServer> s_connection = nullptr;
+    static RefPtr<ConnectionToWindowServerSerenity> s_connection = nullptr;
     if (!s_connection)
-        s_connection = ConnectionToWindowServer::try_create().release_value_but_fixme_should_propagate_errors();
+        s_connection = ConnectionToWindowServerSerenity::try_create().release_value_but_fixme_should_propagate_errors();
     return *s_connection;
 }
 
@@ -42,8 +42,9 @@ static void set_system_theme_from_anonymous_buffer(Core::AnonymousBuffer buffer)
     Application::the()->set_system_palette(buffer);
 }
 
-ConnectionToWindowServer::ConnectionToWindowServer(NonnullOwnPtr<Core::Stream::LocalSocket> socket)
-    : IPC::ConnectionToServer<WindowClientEndpoint, WindowServerEndpoint>(*this, move(socket))
+ConnectionToWindowServerSerenity::ConnectionToWindowServerSerenity(NonnullOwnPtr<Core::Stream::LocalSocket> socket)
+    : IPC::Connection<WindowClientEndpoint, WindowServerEndpoint>(*this, move(socket))
+    , WindowServerEndpoint::template Proxy<WindowClientEndpoint>(*this, {})
 {
     // NOTE: WindowServer automatically sends a "fast_greet" message to us when we connect.
     //       All we have to do is wait for it to arrive. This avoids a round-trip during application startup.
@@ -380,6 +381,11 @@ void ConnectionToWindowServer::display_link_notification()
         return;
 
     m_display_link_notification_pending = true;
+    do_display_link_notification();
+}
+
+void ConnectionToWindowServerSerenity::do_display_link_notification()
+{
     deferred_invoke([this] {
         DisplayLink::notify({});
         m_display_link_notification_pending = false;
