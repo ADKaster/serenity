@@ -416,9 +416,9 @@ private:
     message_generator.appendln("\n};");
 }
 
-void do_message_for_proxy(SourceGenerator message_generator, Endpoint const& endpoint, Message const& message)
+void do_message_for_proxy(SourceGenerator message_generator, Endpoint const& endpoint, Message const& message, bool abstract)
 {
-    auto do_implement_proxy = [&](String const& name, Vector<Parameter> const& parameters, bool is_synchronous, bool is_try) {
+    auto do_implement_proxy = [&](String const& name, Vector<Parameter> const& parameters, bool is_synchronous, bool is_try, bool is_ipc_wrapped_virtual) {
         String return_type = "void";
         if (is_synchronous) {
             if (message.outputs.size() == 1)
@@ -427,18 +427,23 @@ void do_message_for_proxy(SourceGenerator message_generator, Endpoint const& end
                 return_type = message_name(endpoint.name, message.name, true);
         }
         String inner_return_type = return_type;
-        if (is_try)
+        if (is_try) {
+            if (!message.outputs.is_empty())
+                return_type = message_name(endpoint.name, message.name, true);
             return_type = String::formatted("IPC::IPCErrorOr<{}>", return_type);
+        }
 
         message_generator.set("message.name", message.name);
         message_generator.set("message.pascal_name", pascal_case(message.name));
         message_generator.set("message.complex_return_type", return_type);
         message_generator.set("async_prefix_maybe", is_synchronous ? "" : "async_");
         message_generator.set("try_prefix_maybe", is_try ? "try_" : "");
+        message_generator.set("maybe_virtual", is_ipc_wrapped_virtual ? "virtual " : "");
+        message_generator.set("maybe_ipc_prefix", is_ipc_wrapped_virtual ? "ipc_" : "");
 
         message_generator.set("handler_name", name);
         message_generator.appendln(R"~~~(
-    @message.complex_return_type@ @try_prefix_maybe@@async_prefix_maybe@@handler_name@()~~~");
+    @maybe_virtual@ @message.complex_return_type@ @maybe_ipc_prefix@@try_prefix_maybe@@async_prefix_maybe@@handler_name@()~~~");
 
         for (size_t i = 0; i < parameters.size(); ++i) {
             auto const& parameter = parameters[i];
@@ -450,7 +455,30 @@ void do_message_for_proxy(SourceGenerator message_generator, Endpoint const& end
                 argument_generator.append(", ");
         }
 
-        message_generator.append(") {");
+        message_generator.append(") ");
+
+        if (abstract && is_ipc_wrapped_virtual) {
+            message_generator.appendln(" = 0;");
+            return; // from lambda
+        }
+        if (!is_ipc_wrapped_virtual) {
+            message_generator.append(R"~~~( {
+               return ipc_@try_prefix_maybe@@async_prefix_maybe@@handler_name@()~~~");
+            for (size_t i = 0; i < parameters.size(); ++i) {
+                auto const& parameter = parameters[i];
+                auto argument_generator = message_generator.fork();
+                argument_generator.set("argument.name", parameter.name);
+                if (is_primitive_type(parameters[i].type))
+                    argument_generator.append("@argument.name@");
+                else
+                    argument_generator.append("move(@argument.name@)");
+                if (i != parameters.size() - 1)
+                    argument_generator.append(", ");
+            }
+            message_generator.appendln("); }");
+            return; // from lambda
+        }
+        message_generator.append("override {");
 
         if (is_synchronous && !is_try) {
             if (return_type != "void") {
@@ -517,10 +545,18 @@ void do_message_for_proxy(SourceGenerator message_generator, Endpoint const& end
     })~~~");
     };
 
-    do_implement_proxy(message.name, message.inputs, message.is_synchronous, false);
+    do_implement_proxy(message.name, message.inputs, message.is_synchronous, false, true);
     if (message.is_synchronous) {
-        do_implement_proxy(message.name, message.inputs, false, false);
-        do_implement_proxy(message.name, message.inputs, true, true);
+        do_implement_proxy(message.name, message.inputs, false, false, true);
+        do_implement_proxy(message.name, message.inputs, true, true, true);
+    }
+    // Non-virtuals with friendly names go on base
+    if (abstract) {
+        do_implement_proxy(message.name, message.inputs, message.is_synchronous, false, false);
+        if (message.is_synchronous) {
+            do_implement_proxy(message.name, message.inputs, false, false, false);
+            do_implement_proxy(message.name, message.inputs, true, true, false);
+        }
     }
 }
 
@@ -545,8 +581,20 @@ void build_endpoint(SourceGenerator generator, Endpoint const& endpoint)
     generator.appendln(R"~~~(
 } // namespace Messages::@endpoint.name@
 
+class @endpoint.name@ProxyBase {
+public:
+    virtual ~@endpoint.name@ProxyBase() = default;
+
+)~~~");
+
+    for (auto const& message : endpoint.messages)
+        do_message_for_proxy(generator.fork(), endpoint, message, true);
+
+    generator.appendln(R"~~~(
+};
+
 template<typename LocalEndpoint, typename PeerEndpoint>
-class @endpoint.name@Proxy {
+class @endpoint.name@Proxy : public virtual @endpoint.name@ProxyBase {
 public:
     // Used to disambiguate the constructor call.
     struct Tag { };
@@ -556,7 +604,7 @@ public:
     { })~~~");
 
     for (auto const& message : endpoint.messages)
-        do_message_for_proxy(generator.fork(), endpoint, message);
+        do_message_for_proxy(generator.fork(), endpoint, message, false);
 
     generator.appendln(R"~~~(
 private:
