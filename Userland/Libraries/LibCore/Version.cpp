@@ -12,10 +12,17 @@ namespace Core::Version {
 
 ErrorOr<String> read_long_version_string()
 {
-    auto uname = TRY(Core::System::uname());
+#if defined(AK_OS_WINDOWS)
+    auto version = "1.0.0"sv;
+    auto git_hash = "a"sv;
+#else
+    auto result = Core::System::uname();
+    if (result.is_error())
+        return {};
 
-    auto const* version = uname.release;
-    auto const* git_hash = uname.version;
+    auto const* version = result.value().release;
+    auto const *git_hash = result.value().version;
+#endif
 
     return String::formatted("Version {} revision {}", version, git_hash);
 }
