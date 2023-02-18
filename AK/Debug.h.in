@@ -270,10 +270,6 @@
 #cmakedefine01 LINE_EDITOR_DEBUG
 #endif
 
-#ifndef LOG_DEBUG
-#cmakedefine01 LOG_DEBUG
-#endif
-
 #ifndef LOOKUPSERVER_DEBUG
 #cmakedefine01 LOOKUPSERVER_DEBUG
 #endif
