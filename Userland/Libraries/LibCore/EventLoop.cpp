@@ -6,6 +6,7 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
+#include "AK/Forward.h"
 #include <AK/Assertions.h>
 #include <AK/Badge.h>
 #include <AK/Debug.h>
@@ -507,7 +508,15 @@ size_t EventLoop::pump(WaitMode mode)
 void EventLoop::post_event(Object& receiver, NonnullOwnPtr<Event>&& event, ShouldWake should_wake)
 {
     Threading::MutexLocker lock(m_private->lock);
-    dbgln_if(EVENTLOOP_DEBUG, "Core::EventLoop::post_event: ({}) << receiver={}, event={}", m_queued_events.size(), receiver, event);
+#ifdef AK_OS_SERENITY
+    static DeprecatedString process_name = [] {
+        char buf[128] = {};
+        (void)get_process_name(buf, 127);
+        return DeprecatedString{ buf, strlen(buf) };
+    }();
+    if (process_name == "ChessEngine"sv)
+        dbgln("Core::EventLoop::post_event: ({}) << receiver={}, event={}", m_queued_events.size(), receiver, event);
+#endif
     m_queued_events.empend(receiver, move(event));
     if (should_wake == ShouldWake::Yes)
         wake();

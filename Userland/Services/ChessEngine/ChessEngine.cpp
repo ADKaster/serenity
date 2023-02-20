@@ -7,13 +7,13 @@
 #include "ChessEngine.h"
 #include "MCTSTree.h"
 #include <AK/Random.h>
-#include <LibCore/DeprecatedFile.h>
 #include <LibCore/ElapsedTimer.h>
 
 using namespace Chess::UCI;
 
 void ChessEngine::handle_uci()
 {
+    dbgln("handle uci");
     send_command(IdCommand(IdCommand::Type::Name, "ChessEngine"sv));
     send_command(IdCommand(IdCommand::Type::Author, "the SerenityOS developers"sv));
     send_command(UCIOkCommand());
@@ -21,6 +21,7 @@ void ChessEngine::handle_uci()
 
 void ChessEngine::handle_position(PositionCommand const& command)
 {
+    dbgln("handle position");
     // FIXME: Implement fen board position.
     VERIFY(!command.fen().has_value());
     m_board = Chess::Board();
@@ -34,6 +35,8 @@ void ChessEngine::handle_go(GoCommand const& command)
     // FIXME: A better algorithm than naive mcts.
     // FIXME: Add different ways to terminate search.
     VERIFY(command.movetime.has_value());
+
+    dbgln("handle go");
 
     srand(get_random<u32>());
 

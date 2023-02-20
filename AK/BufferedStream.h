@@ -309,6 +309,8 @@ public:
 
     size_t buffer_size() const { return m_helper.buffer_size(); }
 
+    T const& unsafe_underlying_stream() const { return m_helper.stream(); }
+
     virtual ~BufferedSeekable() override = default;
 
 private:

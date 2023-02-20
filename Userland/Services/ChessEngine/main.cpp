@@ -5,7 +5,7 @@
  */
 
 #include "ChessEngine.h"
-#include <LibCore/DeprecatedFile.h>
+#include <LibCore/File.h>
 #include <LibCore/EventLoop.h>
 #include <LibCore/System.h>
 #include <LibMain/Main.h>
@@ -16,6 +16,9 @@ ErrorOr<int> serenity_main(Main::Arguments)
     Core::EventLoop loop;
     TRY(Core::System::unveil(nullptr, nullptr));
 
-    auto engine = TRY(ChessEngine::try_create(Core::DeprecatedFile::standard_input(), Core::DeprecatedFile::standard_output()));
+    auto buffered_stdin = TRY(Core::BufferedFile::create(TRY(Core::File::standard_input())));
+    auto buffered_stdout = TRY(Core::BufferedFile::create(TRY(Core::File::standard_output())));
+
+    auto engine = TRY(ChessEngine::try_create(move(buffered_stdin), move(buffered_stdout)));
     return loop.exec();
 }

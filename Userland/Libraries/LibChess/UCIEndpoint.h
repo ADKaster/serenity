@@ -7,7 +7,7 @@
 #pragma once
 
 #include <LibChess/UCICommand.h>
-#include <LibCore/IODevice.h>
+#include <LibCore/File.h>
 #include <LibCore/Notifier.h>
 #include <LibCore/Object.h>
 
@@ -35,26 +35,26 @@ public:
 
     virtual void event(Core::Event&) override;
 
-    Core::IODevice& in() { return *m_in; }
-    Core::IODevice& out() { return *m_out; }
+    Core::BufferedFile& in() { return *m_in; }
+    Core::BufferedFile& out() { return *m_out; }
 
-    void set_in(RefPtr<Core::IODevice> in)
+    void set_in(OwnPtr<Core::BufferedFile> in)
     {
-        m_in = in;
+        m_in = move(in);
         set_in_notifier();
     }
-    void set_out(RefPtr<Core::IODevice> out) { m_out = out; }
+    void set_out(OwnPtr<Core::BufferedFile> out) { m_out = move(out); }
 
 protected:
     Endpoint() = default;
-    Endpoint(NonnullRefPtr<Core::IODevice> in, NonnullRefPtr<Core::IODevice> out);
+    Endpoint(NonnullOwnPtr<Core::BufferedFile> in, NonnullOwnPtr<Core::BufferedFile> out);
 
 private:
     void set_in_notifier();
     NonnullOwnPtr<Command> read_command();
 
-    RefPtr<Core::IODevice> m_in;
-    RefPtr<Core::IODevice> m_out;
+    OwnPtr<Core::BufferedFile> m_in;
+    OwnPtr<Core::BufferedFile> m_out;
     RefPtr<Core::Notifier> m_in_notifier;
 };
 

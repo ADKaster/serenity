@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "LibCore/File.h"
 #include "MCTSTree.h"
 #include <LibChess/Chess.h>
 #include <LibChess/UCIEndpoint.h>
@@ -21,8 +22,8 @@ public:
 
 private:
     ChessEngine() = default;
-    ChessEngine(NonnullRefPtr<Core::IODevice> in, NonnullRefPtr<Core::IODevice> out)
-        : Endpoint(in, out)
+    ChessEngine(NonnullOwnPtr<Core::BufferedFile> in, NonnullOwnPtr<Core::BufferedFile> out)
+        : Endpoint(move(in), move(out))
     {
     }
 
