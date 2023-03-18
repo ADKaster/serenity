@@ -39,6 +39,7 @@ ThrowCompletionOr<void> initialize_bound_name(VM&, DeprecatedFlyString const&, V
 bool is_compatible_property_descriptor(bool extensible, PropertyDescriptor const&, Optional<PropertyDescriptor> const& current);
 bool validate_and_apply_property_descriptor(Object*, PropertyKey const&, bool extensible, PropertyDescriptor const&, Optional<PropertyDescriptor> const& current);
 ThrowCompletionOr<Object*> get_prototype_from_constructor(VM&, FunctionObject const& constructor, Object* (Intrinsics::*intrinsic_default_prototype)());
+ThrowCompletionOr<Object*> get_prototype_from_constructor(VM&, FunctionObject const& constructor, Function<Object*(Realm&)> default_prototype_getter);
 Object* create_unmapped_arguments_object(VM&, Span<Value> arguments);
 Object* create_mapped_arguments_object(VM&, FunctionObject&, Vector<FunctionParameter> const&, Span<Value> arguments, Environment&);
 
@@ -146,6 +147,14 @@ ThrowCompletionOr<NonnullGCPtr<T>> ordinary_create_from_constructor(VM& vm, Func
 {
     auto& realm = *vm.current_realm();
     auto* prototype = TRY(get_prototype_from_constructor(vm, constructor, intrinsic_default_prototype));
+    return MUST_OR_THROW_OOM(realm.heap().allocate<T>(realm, forward<Args>(args)..., *prototype));
+}
+
+template<typename T, typename... Args>
+ThrowCompletionOr<NonnullGCPtr<T>> ordinary_create_from_constructor(VM& vm, FunctionObject const& constructor, Function<Object*(Realm&)> default_prototype_getter, Args&&... args)
+{
+    auto& realm = *vm.current_realm();
+    auto* prototype = TRY(get_prototype_from_constructor(vm, constructor, move(default_prototype_getter)));
     return MUST_OR_THROW_OOM(realm.heap().allocate<T>(realm, forward<Args>(args)..., *prototype));
 }
 

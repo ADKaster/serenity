@@ -2712,6 +2712,14 @@ private:
 )~~~");
     }
 
+    if (interface.extended_attributes.contains("WithExtraInitialization")) {
+        auto init_generator = generator.fork();
+        init_generator.set("extra_init_function", interface.extended_attributes.get("WithExtraInitialization").value());
+        init_generator.append(R"~~~(
+    JS::ThrowCompletionOr<void> @extra_init_function@(JS::Realm&);
+)~~~");
+    }
+
     for (auto const& overload_set : interface.overload_sets) {
         auto function_generator = generator.fork();
         function_generator.set("function.name:snakecase", make_input_acceptable_cpp(overload_set.key.to_snakecase()));
@@ -2816,6 +2824,14 @@ JS::ThrowCompletionOr<void> @namespace_class@::initialize(JS::Realm& realm)
 
         function_generator.append(R"~~~(
     define_native_function(realm, "@function.name@", @function.name:snakecase@, @function.length@, default_attributes);
+)~~~");
+    }
+
+    if (interface.extended_attributes.contains("WithExtraInitialization")) {
+        auto init_generator = generator.fork();
+        init_generator.set("extra_init_function", interface.extended_attributes.get("WithExtraInitialization").value());
+        init_generator.append(R"~~~(
+    MUST_OR_THROW_OOM(@extra_init_function@(realm));
 )~~~");
     }
 

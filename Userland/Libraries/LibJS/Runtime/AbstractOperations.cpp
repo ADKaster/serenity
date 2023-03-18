@@ -384,6 +384,30 @@ ThrowCompletionOr<Object*> get_prototype_from_constructor(VM& vm, FunctionObject
     return &prototype.as_object();
 }
 
+// IMPLEMENTATION DEFINED: Some specs (Wasm JS-API, looking at you) override intrinsic operations. This is their escape hatch for this AO
+// 10.1.14 GetPrototypeFromConstructor( constructor, intrinsicDefaultProto ), https://tc39.es/ecma262/#sec-getprototypefromconstructor
+ThrowCompletionOr<Object*> get_prototype_from_constructor(VM& vm, FunctionObject const& constructor, Function<Object*(Realm&)> default_prototype_getter)
+{
+    // 1. Assert: intrinsicDefaultProto is this specification's name of an intrinsic object. The corresponding object must be an intrinsic that is intended to be used as the [[Prototype]] value of an object.
+    // IMPLEMENTATION DEFINED: intrinsicDefaultProto is *some other specification's* name of an intrinsic object.
+
+    // 2. Let proto be ? Get(constructor, "prototype").
+    auto prototype = TRY(constructor.get(vm.names.prototype));
+
+    // 3. If Type(proto) is not Object, then
+    if (!prototype.is_object()) {
+        // a. Let realm be ? GetFunctionRealm(constructor).
+        auto* realm = TRY(get_function_realm(vm, constructor));
+
+        // b. Set proto to realm's intrinsic object named intrinsicDefaultProto.
+        // IMPLEMENTATION DEFINED: Call the external getter function for the default prototype
+        prototype = default_prototype_getter(*realm);
+    }
+
+    // 4. Return proto.
+    return &prototype.as_object();
+}
+
 // 9.1.2.2 NewDeclarativeEnvironment ( E ), https://tc39.es/ecma262/#sec-newdeclarativeenvironment
 NonnullGCPtr<DeclarativeEnvironment> new_declarative_environment(Environment& environment)
 {

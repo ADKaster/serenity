@@ -124,23 +124,8 @@ JS_DEFINE_NATIVE_FUNCTION(ErrorPrototype::stack_setter)
     return TRY(this_object.create_data_property_or_throw(vm.names.stack, vm.argument(0)));
 }
 
-#define __JS_ENUMERATE(ClassName, snake_name, PrototypeName, ConstructorName, ArrayType)                             \
-    PrototypeName::PrototypeName(Realm& realm)                                                                       \
-        : PrototypeObject(*realm.intrinsics().error_prototype())                                                     \
-    {                                                                                                                \
-    }                                                                                                                \
-                                                                                                                     \
-    ThrowCompletionOr<void> PrototypeName::initialize(Realm& realm)                                                  \
-    {                                                                                                                \
-        auto& vm = this->vm();                                                                                       \
-        MUST_OR_THROW_OOM(Base::initialize(realm));                                                                  \
-        u8 attr = Attribute::Writable | Attribute::Configurable;                                                     \
-        define_direct_property(vm.names.name, MUST_OR_THROW_OOM(PrimitiveString::create(vm, #ClassName##sv)), attr); \
-        define_direct_property(vm.names.message, PrimitiveString::create(vm, String {}), attr);                      \
-                                                                                                                     \
-        return {};                                                                                                   \
-    }
-
+#define __JS_ENUMERATE(ClassName, snake_name, PrototypeName, ConstructorName, ArrayType) \
+    JS_IMPLEMENT_NATIVE_ERROR_PROTOTYPE(ClassName, snake_name, PrototypeName, ConstructorName, ArrayType)
 JS_ENUMERATE_NATIVE_ERRORS
 #undef __JS_ENUMERATE
 

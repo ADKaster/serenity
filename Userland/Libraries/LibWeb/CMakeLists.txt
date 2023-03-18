@@ -443,6 +443,7 @@ set(SOURCES
     URL/URL.cpp
     URL/URLSearchParams.cpp
     URL/URLSearchParamsIterator.cpp
+    WebAssembly/Error.cpp
     WebAssembly/Instance.cpp
     WebAssembly/Memory.cpp
     WebAssembly/Module.cpp

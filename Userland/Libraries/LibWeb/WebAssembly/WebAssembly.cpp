@@ -19,11 +19,44 @@
 #include <LibJS/Runtime/TypedArray.h>
 #include <LibJS/Runtime/VM.h>
 #include <LibWasm/AbstractMachine/Validator.h>
+#include <LibWeb/Bindings/Intrinsics.h>
+#include <LibWeb/Bindings/WebAssemblyNamespace.h>
+#include <LibWeb/WebAssembly/Error.h>
 #include <LibWeb/WebAssembly/Instance.h>
 #include <LibWeb/WebAssembly/Memory.h>
 #include <LibWeb/WebAssembly/Module.h>
 #include <LibWeb/WebAssembly/Table.h>
 #include <LibWeb/WebAssembly/WebAssembly.h>
+
+namespace Web::Bindings {
+
+// https://webassembly.github.io/spec/js-api/#error-objects
+JS::ThrowCompletionOr<void> WebAssemblyNamespace::initialize_error_types(JS::Realm& realm)
+{
+    // When the namespace object for the WebAssembly namespace is created, the following steps must be run:
+
+    // 1. Let namespaceObject be the namespace object.
+    auto& namespace_object = *this;
+
+    // 2. For each error of « "CompileError", "LinkError", "RuntimeError" »,
+    //   1. Let constructor be a new object, implementing the NativeError Object Structure, with NativeError set to error.
+    //   2. ! CreateMethodProperty(namespaceObject, error, constructor).
+
+    // Note: It is not currently possible to define this behavior using Web IDL.
+
+    auto& compile_error_constructor = Web::Bindings::ensure_web_constructor<WebAssembly::CompileErrorPrototype>(realm, "CompileErrorConstructor");
+    namespace_object.create_method_property("CompileError", &compile_error_constructor);
+
+    auto& link_error_constructor = Web::Bindings::ensure_web_constructor<WebAssembly::LinkErrorPrototype>(realm, "LinkErrorConstructor");
+    namespace_object.create_method_property("LinkError", &link_error_constructor);
+
+    auto& runtime_error_constructor = Web::Bindings::ensure_web_constructor<WebAssembly::RuntimeErrorPrototype>(realm, "RuntimeErrorConstructor");
+    namespace_object.create_method_property("RuntimeError", &runtime_error_constructor);
+
+    return {};
+}
+
+}
 
 namespace Web::WebAssembly {
 
@@ -232,10 +265,10 @@ JS::ThrowCompletionOr<size_t> instantiate_module(JS::VM& vm, Wasm::Module const&
                     // https://webassembly.github.io/spec/js-api/#read-the-imports step 5.1
                     if (import_.is_number() || import_.is_bigint()) {
                         if (import_.is_number() && type.type().kind() == Wasm::ValueType::I64) {
-                            return vm.throw_completion<JS::WebAssemblyLinkError>("Import resolution attempted to cast a Number to a BigInteger");
+                            return vm.throw_completion<WebAssembly::LinkError>("Import resolution attempted to cast a Number to a BigInteger"sv);
                         }
                         if (import_.is_bigint() && type.type().kind() != Wasm::ValueType::I64) {
-                            return vm.throw_completion<JS::WebAssemblyLinkError>("Import resolution attempted to cast a BigInteger to a Number");
+                            return vm.throw_completion<WebAssembly::LinkError>("Import resolution attempted to cast a BigInteger to a Number"sv);
                         }
                         auto cast_value = TRY(to_webassembly_value(vm, import_, type.type()));
                         address = s_abstract_machine.store().allocate({ type.type(), false }, cast_value);
@@ -244,7 +277,7 @@ JS::ThrowCompletionOr<size_t> instantiate_module(JS::VM& vm, Wasm::Module const&
                         //        if v implements Global
                         //            let globaladdr be v.[[Global]]
 
-                        return vm.throw_completion<JS::WebAssemblyLinkError>("Invalid value for global type");
+                        return vm.throw_completion<WebAssembly::LinkError>("Invalid value for global type"sv);
                     }
 
                     resolved_imports.set(import_name, Wasm::ExternValue { *address });
@@ -252,7 +285,7 @@ JS::ThrowCompletionOr<size_t> instantiate_module(JS::VM& vm, Wasm::Module const&
                 },
                 [&](Wasm::MemoryType const&) -> JS::ThrowCompletionOr<void> {
                     if (!import_.is_object() || !is<WebAssembly::Memory>(import_.as_object())) {
-                        return vm.throw_completion<JS::WebAssemblyLinkError>("Expected an instance of WebAssembly.Memory for a memory import");
+                        return vm.throw_completion<WebAssembly::LinkError>("Expected an instance of WebAssembly.Memory for a memory import"sv);
                     }
                     auto address = static_cast<WebAssembly::Memory const&>(import_.as_object()).address();
                     resolved_imports.set(import_name, Wasm::ExternValue { address });
@@ -260,7 +293,7 @@ JS::ThrowCompletionOr<size_t> instantiate_module(JS::VM& vm, Wasm::Module const&
                 },
                 [&](Wasm::TableType const&) -> JS::ThrowCompletionOr<void> {
                     if (!import_.is_object() || !is<WebAssembly::Table>(import_.as_object())) {
-                        return vm.throw_completion<JS::WebAssemblyLinkError>("Expected an instance of WebAssembly.Table for a table import");
+                        return vm.throw_completion<WebAssembly::LinkError>("Expected an instance of WebAssembly.Table for a table import"sv);
                     }
                     auto address = static_cast<WebAssembly::Table const&>(import_.as_object()).address();
                     resolved_imports.set(import_name, Wasm::ExternValue { address });
@@ -269,7 +302,7 @@ JS::ThrowCompletionOr<size_t> instantiate_module(JS::VM& vm, Wasm::Module const&
                 [&](auto const&) -> JS::ThrowCompletionOr<void> {
                     // FIXME: Implement these.
                     dbgln("Unimplemented import of non-function attempted");
-                    return vm.throw_completion<JS::WebAssemblyLinkError>("Not Implemented import of non-function"sv);
+                    return vm.throw_completion<WebAssembly::LinkError>("Not Implemented import of non-function"sv);
                 }));
         }
     }
@@ -280,12 +313,12 @@ JS::ThrowCompletionOr<size_t> instantiate_module(JS::VM& vm, Wasm::Module const&
         JS::ThrowableStringBuilder builder(vm);
         MUST_OR_THROW_OOM(builder.append("LinkError: Missing "sv));
         MUST_OR_THROW_OOM(builder.join(' ', link_result.error().missing_imports));
-        return vm.throw_completion<JS::WebAssemblyLinkError>(MUST_OR_THROW_OOM(builder.to_string()));
+        return vm.throw_completion<WebAssembly::LinkError>(MUST_OR_THROW_OOM(builder.to_string()));
     }
 
     auto instance_result = s_abstract_machine.instantiate(module, link_result.release_value());
     if (instance_result.is_error()) {
-        return vm.throw_completion<JS::WebAssemblyLinkError>(instance_result.error().error);
+        return vm.throw_completion<WebAssembly::LinkError>(instance_result.error().error);
     }
 
     s_instantiated_modules.append(instance_result.release_value());
