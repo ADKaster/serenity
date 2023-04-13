@@ -8,6 +8,7 @@
 #include <LibWeb/DOM/Event.h>
 #include <LibWeb/HTML/BrowsingContext.h>
 #include <LibWeb/HTML/HTMLIFrameElement.h>
+#include <LibWeb/HTML/Navigable.h>
 #include <LibWeb/HTML/Origin.h>
 #include <LibWeb/HTML/Parser/HTMLParser.h>
 #include <LibWeb/Layout/FrameBox.h>
@@ -35,7 +36,7 @@ JS::GCPtr<Layout::Node> HTMLIFrameElement::create_layout_node(NonnullRefPtr<CSS:
 void HTMLIFrameElement::attribute_changed(DeprecatedFlyString const& name, DeprecatedString const& value)
 {
     HTMLElement::attribute_changed(name, value);
-    if (m_nested_browsing_context)
+    if (m_content_navigable)
         process_the_iframe_attributes();
 }
 
@@ -92,8 +93,33 @@ void HTMLIFrameElement::process_the_iframe_attributes(bool initial_insertion)
         return;
     }
 
-    // 2. Otherwise, run the shared attribute processing steps for iframe and frame elements given element and initialInsertion.
-    shared_attribute_processing_steps_for_iframe_and_frame(initial_insertion);
+    // 1. Let url be the result of running the shared attribute processing steps for iframe and frame elements given element and initialInsertion.
+    auto url = shared_attribute_processing_steps_for_iframe_and_frame(initial_insertion);
+
+    // 2. If url is null, then return.
+    if (!url.has_value()) {
+        return;
+    }
+
+    // FIXME: 3. If url matches about:blank and initialInsertion is true, then:
+    //             1. Run the iframe load event steps given element.
+    //             2. Return.
+
+    // FIXME: 4. Let referrerPolicy be the current state of element's referrerpolicy content attribute.
+
+    // FIXME: 5. Set element's current navigation was lazy loaded boolean to false.
+
+    // 6. If the will lazy load element steps given element return true, then:
+    if (will_lazy_load_element()) {
+        // FIXME: 1. Set element's lazy load resumption steps to the rest of this algorithm starting with the step labeled navigate.
+        // FIXME: 2. Set element's current navigation was lazy loaded boolean to true.
+        // FIXME: 3. Start intersection-observing a lazy loading element for element.
+        // 4. Return.
+        return;
+    }
+
+    // 7. Navigate: navigate an iframe or frame given element, url, and referrerPolicy.
+    navigate_an_iframe_or_frame(*url);
 }
 
 // https://html.spec.whatwg.org/multipage/iframe-embed-object.html#the-iframe-element:the-iframe-element-7
@@ -101,12 +127,8 @@ void HTMLIFrameElement::removed_from(DOM::Node* node)
 {
     HTMLElement::removed_from(node);
 
-    // When an iframe element is removed from a document, the user agent must discard the element's nested browsing context,
-    // if it is not null, and then set the element's nested browsing context to null.
-    if (m_nested_browsing_context) {
-        m_nested_browsing_context->discard();
-        m_nested_browsing_context = nullptr;
-    }
+    // When an iframe element is removed from a document, the user agent must destroy the nested navigable of the element.
+    destroy_the_child_navigable();
 }
 
 // https://html.spec.whatwg.org/multipage/rendering.html#attributes-for-embedded-content-and-images
@@ -126,8 +148,8 @@ void HTMLIFrameElement::apply_presentational_hints(CSS::StyleProperties& style) 
 // https://html.spec.whatwg.org/multipage/iframe-embed-object.html#iframe-load-event-steps
 void run_iframe_load_event_steps(HTML::HTMLIFrameElement& element)
 {
-    // FIXME: 1. Assert: element's nested browsing context is not null.
-    if (!element.nested_browsing_context()) {
+    // FIXME: 1. Assert: element's content navigable is not null.
+    if (!element.content_navigable()) {
         // FIXME: For some reason, we sometimes end up here in the middle of SunSpider.
         dbgln("FIXME: run_iframe_load_event_steps called with null nested browsing context");
         return;
