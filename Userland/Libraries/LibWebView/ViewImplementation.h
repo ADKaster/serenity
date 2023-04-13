@@ -54,6 +54,7 @@ public:
     void load(AK::URL const&);
     void load_html(StringView, AK::URL const&);
     void load_empty_document();
+    void traverse_the_history_by_delta(i32);
 
     void zoom_in();
     void zoom_out();

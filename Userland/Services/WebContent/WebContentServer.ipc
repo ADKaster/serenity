@@ -20,6 +20,7 @@ endpoint WebContentServer
 
     load_url(URL url) =|
     load_html(DeprecatedString html, URL url) =|
+    traverse_the_history_by_delta(i32 delta) =|
 
     add_backing_store(i32 backing_store_id, Gfx::ShareableBitmap bitmap) =|
     remove_backing_store(i32 backing_store_id) =|

@@ -92,6 +92,11 @@ void ViewImplementation::load_html(StringView html, AK::URL const& url)
     client().async_load_html(html, url);
 }
 
+void ViewImplementation::traverse_the_history_by_delta(i32 delta)
+{
+    client().async_traverse_the_history_by_delta(delta);
+}
+
 void ViewImplementation::load_empty_document()
 {
     load_html(""sv, {});

@@ -26,6 +26,7 @@
 #include <LibWeb/HTML/BrowsingContext.h>
 #include <LibWeb/HTML/Scripting/ClassicScript.h>
 #include <LibWeb/HTML/Storage.h>
+#include <LibWeb/HTML/TraversableNavigable.h>
 #include <LibWeb/HTML/Window.h>
 #include <LibWeb/Layout/Viewport.h>
 #include <LibWeb/Loader/ContentFilter.h>
@@ -122,6 +123,11 @@ void ConnectionFromClient::load_html(DeprecatedString const& html, const URL& ur
 {
     dbgln_if(SPAM_DEBUG, "handle: WebContentServer::LoadHTML: html={}, url={}", html, url);
     page().load_html(html, url);
+}
+
+void ConnectionFromClient::traverse_the_history_by_delta(i32 delta)
+{
+    m_page_host->page().top_level_traversable()->traverse_the_history_by_delta(delta);
 }
 
 void ConnectionFromClient::set_viewport_rect(Gfx::IntRect const& rect)

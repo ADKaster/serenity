@@ -56,6 +56,7 @@ private:
     virtual void update_screen_rects(Vector<Gfx::IntRect> const&, u32) override;
     virtual void load_url(URL const&) override;
     virtual void load_html(DeprecatedString const&, URL const&) override;
+    virtual void traverse_the_history_by_delta(i32) override;
     virtual void paint(Gfx::IntRect const&, i32) override;
     virtual void set_viewport_rect(Gfx::IntRect const&) override;
     virtual void mouse_down(Gfx::IntPoint, unsigned, unsigned, unsigned) override;
