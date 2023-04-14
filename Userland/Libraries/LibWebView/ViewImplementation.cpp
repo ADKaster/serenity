@@ -97,6 +97,11 @@ void ViewImplementation::traverse_the_history_by_delta(i32 delta)
     client().async_traverse_the_history_by_delta(delta);
 }
 
+void ViewImplementation::reload()
+{
+    client().async_reload();
+}
+
 void ViewImplementation::load_empty_document()
 {
     load_html(""sv, {});

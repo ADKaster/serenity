@@ -130,6 +130,11 @@ void ConnectionFromClient::traverse_the_history_by_delta(i32 delta)
     m_page_host->page().top_level_traversable()->traverse_the_history_by_delta(delta);
 }
 
+void ConnectionFromClient::reload()
+{
+    m_page_host->page().top_level_traversable()->reload();
+}
+
 void ConnectionFromClient::set_viewport_rect(Gfx::IntRect const& rect)
 {
     dbgln_if(SPAM_DEBUG, "handle: WebContentServer::SetViewportRect: rect={}", rect);
