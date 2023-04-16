@@ -1892,6 +1892,15 @@ void Document::update_readiness(HTML::DocumentReadyState readiness_value)
 
     // 4. Fire an event named readystatechange at document.
     dispatch_event(Event::create(realm(), HTML::EventNames::readystatechange));
+
+    if (readiness_value == HTML::DocumentReadyState::Complete) {
+        // FIXME: about:blank should not be an exception
+        if (url().to_deprecated_string() != "about:blank") {
+            if (auto* page = browsing_context()->page()) {
+                page->client().page_did_finish_loading(url());
+            }
+        }
+    }
 }
 
 Page* Document::page()
