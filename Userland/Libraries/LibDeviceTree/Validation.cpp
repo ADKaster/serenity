@@ -11,6 +11,11 @@
 #include <AK/Try.h>
 #include <LibDeviceTree/Validation.h>
 
+#ifdef KERNEL
+#    define outln dbgln
+#    define warnln dmesgln
+#endif
+
 namespace DeviceTree {
 
 bool validate_flattened_device_tree(FlattenedDeviceTreeHeader const& header, ReadonlyBytes raw_device_tree, Verbose verbose)

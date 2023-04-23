@@ -298,6 +298,7 @@ if [ -z "$SERENITY_MACHINE" ]; then
         SERENITY_MACHINE="
         -M raspi3b
         -serial stdio
+        -dtb bcm2710-rpi-3-b-plus.dtb
         -drive file=${SERENITY_DISK_IMAGE},if=sd,format=raw
         "
     else
@@ -330,7 +331,7 @@ fi
 
 if [ "$SERENITY_ARCH" = "aarch64" ]; then
     SERENITY_KERNEL_AND_INITRD="
-    -kernel Kernel/Kernel
+    -kernel Kernel/kernel8.img
     "
 else
     SERENITY_KERNEL_AND_INITRD="

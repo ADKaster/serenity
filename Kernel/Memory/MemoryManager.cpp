@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
+#include "Kernel/Memory/Region.h"
 #include <AK/Assertions.h>
 #include <AK/StringView.h>
 #include <Kernel/Arch/CPU.h>
@@ -622,7 +623,7 @@ PageTableEntry* MemoryManager::ensure_pte(PageDirectory& page_directory, Virtual
         pd = quickmap_pd(page_directory, page_directory_table_index);
         VERIFY(&pde == &pd[page_directory_index]); // Sanity check
 
-        VERIFY(!pde.is_present()); // Should have not changed
+        VERIFY(!pde.is_present());                 // Should have not changed
     }
     pde.set_page_table_base(page_table->paddr().get());
     pde.set_user_allowed(true);
@@ -1253,7 +1254,7 @@ ErrorOr<NonnullOwnPtr<Memory::Region>> MemoryManager::create_identity_mapped_reg
     auto region = TRY(Memory::Region::create_unplaced(move(vmobject), 0, {}, Memory::Region::Access::ReadWriteExecute));
     Memory::VirtualRange range { VirtualAddress { (FlatPtr)address.get() }, size };
     region->m_range = range;
-    TRY(region->map(MM.kernel_page_directory()));
+    TRY(region->map(MM.kernel_page_directory(), ShouldFlushTLB::Yes));
     return region;
 }
 

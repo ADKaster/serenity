@@ -434,6 +434,10 @@ if ("${SERENITY_ARCH}" STREQUAL "x86_64")
         )
     endif()
 elseif("${SERENITY_ARCH}" STREQUAL "aarch64")
+    set(DEVICE_TREE_SOURCES
+        ../Userland/Libraries/LibDeviceTree/FlattenedDeviceTree.cpp
+        ../Userland/Libraries/LibDeviceTree/Validation.cpp
+    )
     set(RPI_SOURCES
         Arch/aarch64/RPi/DebugOutput.cpp
         Arch/aarch64/RPi/Framebuffer.cpp
@@ -453,6 +457,7 @@ elseif("${SERENITY_ARCH}" STREQUAL "aarch64")
     set(KERNEL_SOURCES
         ${KERNEL_SOURCES}
         ${RPI_SOURCES}
+        ${DEVICE_TREE_SOURCES}
         ${SOURCES_RUNNING_WITHOUT_MMU}
         Arch/Processor.cpp
 

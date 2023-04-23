@@ -19,9 +19,12 @@ namespace Kernel {
 
 extern "C" [[noreturn]] void init();
 
-extern "C" [[noreturn]] void pre_init();
-extern "C" [[noreturn]] void pre_init()
+extern "C" [[noreturn]] void pre_init(u8* device_tree_blob);
+extern "C" [[noreturn]] void pre_init(u8* device_tree_blob)
 {
+    // Save this off into a compiler-chosen register so that we can use x0 again.
+    u8* device_tree_phys_addr = device_tree_blob;
+
     // We want to drop to EL1 as soon as possible, because that is the
     // exception level the kernel should run at.
     initialize_exceptions();
@@ -51,12 +54,16 @@ extern "C" [[noreturn]] void pre_init()
     // We can now unmap the identity map as everything is running in high virtual memory at this point.
     Memory::unmap_identity_map();
 
+    // FIXME: Parse enough data from the device tree blob to get the MMU up and running, and pass it
+    //        to the kernel init() in a more richly typed struct on the stack.
+
     // Clear the frame pointer (x29) and link register (x30) to make sure the kernel cannot backtrace
     // into this code, and jump to actual init function in the kernel.
     asm volatile(
         "mov x29, xzr \n"
         "mov x30, xzr \n"
-        "b init \n");
+        "mov x0, %0\n"
+        "b init \n" ::"r"(device_tree_phys_addr));
 
     VERIFY_NOT_REACHED();
 }

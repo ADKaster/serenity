@@ -10,6 +10,9 @@
 #include <AK/MemoryStream.h>
 #include <AK/StringView.h>
 #include <LibDeviceTree/FlattenedDeviceTree.h>
+#ifdef KERNEL
+#    include <Kernel/StdLib.h>
+#endif
 
 namespace DeviceTree {
 

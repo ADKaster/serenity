@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
+#include "AK/Forward.h"
+#include "Kernel/PhysicalAddress.h"
 #include <AK/Types.h>
 #include <Kernel/Arch/InterruptManagement.h>
 #include <Kernel/Arch/Processor.h>
@@ -63,6 +65,8 @@
 #elif ARCH(AARCH64)
 #    include <Kernel/Arch/aarch64/RPi/Framebuffer.h>
 #    include <Kernel/Arch/aarch64/RPi/Mailbox.h>
+#    include <LibDeviceTree //Validation.h>
+#    include <LibDeviceTree/FlattenedDeviceTree.h>
 #endif
 
 // Defined in the linker script
@@ -94,11 +98,17 @@ namespace Kernel {
 [[noreturn]] static void init_stage2(void*);
 static void setup_serial_debug();
 
+#if ARCH(X86_64)
+using InitData = BootInfo const&;
+#else
+using InitData = PhysicalPtr;
+#endif
+
 // boot.S expects these functions to exactly have the following signatures.
 // We declare them here to ensure their signatures don't accidentally change.
 extern "C" void init_finished(u32 cpu) __attribute__((used));
 extern "C" [[noreturn]] void init_ap(FlatPtr cpu, Processor* processor_info);
-extern "C" [[noreturn]] void init(BootInfo const&);
+extern "C" [[noreturn]] void init(InitData);
 
 READONLY_AFTER_INIT VirtualConsole* tty0;
 
@@ -149,7 +159,7 @@ READONLY_AFTER_INIT u8 multiboot_framebuffer_type;
 
 Atomic<Graphics::Console*> g_boot_console;
 
-extern "C" [[noreturn]] UNMAP_AFTER_INIT void init([[maybe_unused]] BootInfo const& boot_info)
+extern "C" [[noreturn]] UNMAP_AFTER_INIT void init(InitData boot_info)
 {
     g_in_early_boot = true;
 
@@ -219,6 +229,16 @@ extern "C" [[noreturn]] UNMAP_AFTER_INIT void init([[maybe_unused]] BootInfo con
     Memory::MemoryManager::initialize(0);
 
 #if ARCH(AARCH64)
+    dmesgln("got a dtb at {:x}", boot_info);
+    auto dtb_region = MUST(MM.create_identity_mapped_region(PhysicalAddress(boot_info), 2 * MiB));
+
+    dmesgln("is that actually mapped? lmao {}", *(u64*)boot_info);
+
+    auto const* device_tree_header = reinterpret_cast<DeviceTree::FlattenedDeviceTreeHeader*>(dtb_region->vaddr().as_ptr());
+    auto raw_device_tree = ReadonlyBytes(dtb_region->vaddr().as_ptr(), dtb_region->size());
+
+    MUST(DeviceTree::dump(*device_tree_header, raw_device_tree));
+
     auto firmware_version = RPi::Mailbox::the().query_firmware_version();
     dmesgln("RPi: Firmware version: {}", firmware_version);
 
