@@ -106,11 +106,19 @@ ErrorOr<int> serenity_main(Main::Arguments arguments)
     window.resize(800, 600);
     window.show();
 
-    if (auto url = TRY(get_formatted_url(raw_url)); url.is_valid()) {
+    raw_url = "https://google.com"sv;
+    qDebug() << "whaaaaat";
+    /*if (auto url = TRY(get_formatted_url(raw_url)); url.is_valid()) {
         window.view().load(url);
     } else {
         window.view().load("about:blank"sv);
     }
+    qDebug() << "helooooooo";*/
+    auto timer = TRY(Core::Timer::create_single_shot(1000, [&] {
+        qDebug() << "wassupppp";
+        window.view().load(MUST(get_formatted_url(raw_url)));
+    }));
+    timer->start();
 
     return event_loop.exec();
 }

@@ -39,6 +39,11 @@
 #    include "MacOSSetup.h"
 #endif
 
+#if defined(AK_OS_ANDROID)
+#    include "WebContentBinder.h"
+#endif
+
+ErrorOr<NonnullRefPtr<WebContent::ConnectionFromClient>> start_web_content(int webcontent_fd_passing_socket);
 static ErrorOr<void> load_content_filters();
 static ErrorOr<void> load_autoplay_allowlist();
 
@@ -46,7 +51,18 @@ extern DeprecatedString s_serenity_resource_root;
 
 ErrorOr<int> serenity_main(Main::Arguments arguments)
 {
+    qDebug() << "Helloooooooooo from WebContent Service";
+
+#if defined(AK_OS_ANDROID)
+    qDebug() << "Hello from WebContent Service";
+
+    QAndroidService apps(arguments.argc, arguments.argv, [](QAndroidIntent const&) {
+        qDebug() << "onBind() for WebContent";
+        return new WebContentBinder;
+    });
+#else
     QGuiApplication app(arguments.argc, arguments.argv);
+#endif
 
 #if defined(AK_OS_MACOS)
     prohibit_interaction();
@@ -81,8 +97,6 @@ ErrorOr<int> serenity_main(Main::Arguments arguments)
 
     JS::Bytecode::Interpreter::set_enabled(use_javascript_bytecode);
 
-    VERIFY(webcontent_fd_passing_socket >= 0);
-
     Web::Platform::FontPlugin::install(*new Ladybird::FontPluginQt(is_layout_test_mode));
 
     Web::FrameLoader::set_error_page_url(DeprecatedString::formatted("file://{}/res/html/error.html", s_serenity_resource_root));
@@ -97,11 +111,28 @@ ErrorOr<int> serenity_main(Main::Arguments arguments)
     if (maybe_autoplay_allowlist_error.is_error())
         dbgln("Failed to load autoplay allowlist: {}", maybe_autoplay_allowlist_error.error());
 
-    auto webcontent_socket = TRY(Core::take_over_socket_from_system_server("WebContent"sv));
-    auto webcontent_client = TRY(WebContent::ConnectionFromClient::try_create(move(webcontent_socket)));
-    webcontent_client->set_fd_passing_socket(TRY(Core::LocalSocket::adopt_fd(webcontent_fd_passing_socket)));
+#ifndef AK_OS_ANDROID
+    auto client = TRY(start_web_content(webcontent_fd_passing_socket));
+#endif
+
+    qDebug() << "Execcing WebContent Service";
 
     return event_loop.exec();
+}
+
+ErrorOr<NonnullRefPtr<WebContent::ConnectionFromClient>> start_web_content(int webcontent_fd_passing_socket)
+{
+    qDebug() << "New WebContent Client for u";
+    VERIFY(webcontent_fd_passing_socket >= 0);
+    qDebug() << "Taking over on " << getenv("SOCKET_TAKEOVER");
+    auto webcontent_socket = TRY(Core::take_over_socket_from_system_server("WebContent"sv));
+    qDebug() << "We taking over";
+    auto webcontent_client = TRY(WebContent::ConnectionFromClient::try_create(move(webcontent_socket)));
+    qDebug() << "connection created";
+    webcontent_client->set_fd_passing_socket(TRY(Core::LocalSocket::adopt_fd(webcontent_fd_passing_socket)));
+    qDebug() << "adoptedddddd";
+
+    return webcontent_client;
 }
 
 static ErrorOr<void> load_content_filters()

@@ -47,6 +47,10 @@ public:
         String aria_properties_state_json;
     };
 
+    struct OSPrivateState {
+        virtual ~OSPrivateState() = default;
+    };
+
     void set_url(Badge<WebContentClient>, AK::URL url) { m_url = move(url); }
     AK::URL const& url() const { return m_url; }
 
@@ -175,10 +179,6 @@ protected:
 
     virtual void create_client(EnableCallgrindProfiling = EnableCallgrindProfiling::No, UseJavaScriptBytecode = UseJavaScriptBytecode::No) { }
 
-#if !defined(AK_OS_SERENITY)
-    ErrorOr<NonnullRefPtr<WebView::WebContentClient>> launch_web_content_process(ReadonlySpan<String> candidate_web_content_paths, EnableCallgrindProfiling = EnableCallgrindProfiling::No, IsLayoutTestMode = IsLayoutTestMode::No, UseJavaScriptBytecode = UseJavaScriptBytecode::No);
-#endif
-
     void handle_web_content_process_crash();
 
     struct SharedBitmap {
@@ -191,6 +191,7 @@ protected:
     struct ClientState {
         RefPtr<WebContentClient> client;
         String client_handle;
+        OwnPtr<OSPrivateState> os_private;
         SharedBitmap front_bitmap;
         SharedBitmap back_bitmap;
         i32 next_bitmap_id { 0 };

@@ -7,6 +7,7 @@
 
 #include "WebContentView.h"
 #include "HelperProcess.h"
+#include "LaunchWebContent.h"
 #include "Utilities.h"
 #include <AK/Assertions.h>
 #include <AK/ByteBuffer.h>
@@ -14,6 +15,7 @@
 #include <AK/HashTable.h>
 #include <AK/LexicalPath.h>
 #include <AK/NonnullOwnPtr.h>
+#include <AK/OwnPtr.h>
 #include <AK/StringBuilder.h>
 #include <AK/Types.h>
 #include <Kernel/API/KeyCode.h>
@@ -530,11 +532,14 @@ void WebContentView::create_client(WebView::EnableCallgrindProfiling enable_call
     m_client_state = {};
 
     auto candidate_web_content_paths = get_paths_for_helper_process("WebContent"sv).release_value_but_fixme_should_propagate_errors();
-    auto new_client = launch_web_content_process(candidate_web_content_paths, enable_callgrind_profiling, WebView::IsLayoutTestMode::No, use_javascript_bytecode).release_value_but_fixme_should_propagate_errors();
+    auto [new_client, os_private] = launch_web_content_process(*this, candidate_web_content_paths, enable_callgrind_profiling, WebView::IsLayoutTestMode::No, use_javascript_bytecode).release_value_but_fixme_should_propagate_errors();
 
+    qDebug() << "Creating clientttt";
     m_client_state.client = new_client;
+    swap(m_client_state.os_private, os_private);
     m_client_state.client->on_web_content_process_crash = [this] {
         Core::deferred_invoke([this] {
+            qDebug() << "RIP WebContent";
             handle_web_content_process_crash();
         });
     };

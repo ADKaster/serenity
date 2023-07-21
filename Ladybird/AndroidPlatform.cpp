@@ -10,7 +10,6 @@
 #include <AK/ScopeGuard.h>
 #include <LibArchive/Tar.h>
 #include <LibArchive/TarStream.h>
-#include <LibCompress/Gzip.h>
 #include <LibCore/Directory.h>
 #include <LibCore/System.h>
 #include <LibFileSystem/FileSystem.h>
@@ -19,6 +18,7 @@
 #include <QCoreApplication>
 #include <QJniObject>
 #include <QSslSocket>
+#include <QtCore/private/qandroidextras_p.h>
 
 #ifndef AK_OS_ANDROID
 #    error This file is for Android only, check CMake config!
@@ -72,7 +72,7 @@ ErrorOr<void> extract_tar_archive(String archive_file, DeprecatedString output_d
     TRY(Core::System::chdir(output_directory));
     ScopeGuard go_back = [&old_pwd] { MUST(Core::System::chdir(old_pwd)); };
 
-    auto tar_stream = TRY(Archive::TarInputStream::construct(make<Compress::GzipCompressor>(move(file))));
+    auto tar_stream = TRY(Archive::TarInputStream::construct(move(file)));
 
     HashMap<DeprecatedString, DeprecatedString> global_overrides;
     HashMap<DeprecatedString, DeprecatedString> local_overrides;
@@ -195,4 +195,32 @@ ErrorOr<void> extract_tar_archive(String archive_file, DeprecatedString output_d
         TRY(tar_stream->advance());
     }
     return {};
+}
+
+// FIXME: These methods are missing from Qt6 QtCore-private
+//        https://bugreports.qt.io/browse/QTBUG-114971
+//        Implementations from https://code.qt.io/cgit/qt/qtandroidextras.git/tree/src/androidextras/android/qjnionload.cpp?h=5.15
+//        This code is technically GPLv2 licensed by Qt (!!) but is trivial glue code so it's probably fine :)
+extern "C" jboolean Java_org_qtproject_qt_android_extras_QtNative_onTransact(JNIEnv* /*env*/, jclass /*cls*/, jlong id, jint code, jobject data, jobject reply, jint flags)
+{
+    qDebug() << "onTransact with id" << id;
+    if (!id)
+        return false;
+    return reinterpret_cast<QAndroidBinder*>(id)->onTransact(code, QAndroidParcel(data), QAndroidParcel(reply), QAndroidBinder::CallType(flags));
+}
+
+extern "C" void Java_org_qtproject_qt_android_extras_QtNative_onServiceConnected(JNIEnv* /*env*/, jclass /*cls*/, jlong id, jstring name, jobject service)
+{
+    qDebug() << "onServiceConnected: " << QJniObject(name).toString();
+    if (!id)
+        return;
+    return reinterpret_cast<QAndroidServiceConnection*>(id)->onServiceConnected(QJniObject(name).toString(), QAndroidBinder(service));
+}
+
+extern "C" void Java_org_qtproject_qt_android_extras_QtNative_onServiceDisconnected(JNIEnv* /*env*/, jclass /*cls*/, jlong id, jstring name)
+{
+    qDebug() << "onServiceDisconnected: " << QJniObject(name).toString();
+    if (!id)
+        return;
+    return reinterpret_cast<QAndroidServiceConnection*>(id)->onServiceDisconnected(QJniObject(name).toString());
 }

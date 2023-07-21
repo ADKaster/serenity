@@ -12,5 +12,8 @@
 #include <AK/StringView.h>
 #include <LibCore/System.h>
 
+#include <LibWebView/ViewImplementation.h>
+#include <LibWebView/WebContentClient.h>
+
 ErrorOr<void> spawn_helper_process(StringView process_name, ReadonlySpan<StringView> arguments, Core::System::SearchInPath, Optional<ReadonlySpan<StringView>> environment = {});
 ErrorOr<Vector<String>> get_paths_for_helper_process(StringView process_name);

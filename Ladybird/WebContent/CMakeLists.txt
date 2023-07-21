@@ -23,6 +23,13 @@ if (APPLE)
     list(APPEND WEBCONTENT_SOURCES MacOSSetup.mm)
 endif()
 
+if (ANDROID)
+    list(APPEND WEBCONTENT_SOURCES
+        WebContentThread.cpp
+        WebContentBinder.cpp
+    )
+endif()
+
 qt_add_executable(WebContent ${WEBCONTENT_SOURCES})
 
 target_include_directories(WebContent PRIVATE ${SERENITY_SOURCE_DIR}/Userland/Services/)

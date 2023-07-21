@@ -33,7 +33,10 @@ FontPluginQt::FontPluginQt(bool is_layout_test_mode)
 
     Gfx::Emoji::set_emoji_lookup_path(String::formatted("{}/res/emoji", s_serenity_resource_root).release_value_but_fixme_should_propagate_errors());
 
+    // FIXME: Figure out how to pass the fonts from the UI thread to the WebContentService
+#ifndef AK_OS_ANDROID
     update_generic_fonts();
+#endif
 
     auto default_font_name = generic_font_name(Web::Platform::GenericFont::UiSansSerif);
     m_default_font = Gfx::FontDatabase::the().get(default_font_name, 12.0, 400, Gfx::FontWidth::Normal, 0);
@@ -130,7 +133,13 @@ void FontPluginQt::update_generic_fonts()
 
 DeprecatedString FontPluginQt::generic_font_name(Web::Platform::GenericFont generic_font)
 {
+#ifdef AK_OS_ANDROID
+    if (generic_font == Web::Platform::GenericFont::Monospace)
+        return "Csilla"sv;
+    return "Katica"sv;
+#else
     return m_generic_font_names[static_cast<size_t>(generic_font)];
+#endif
 }
 
 }

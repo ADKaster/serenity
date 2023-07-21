@@ -13,8 +13,10 @@ set_property(TARGET ladybird APPEND PROPERTY
 #
 # Android-specific sources and libs
 #
-add_library(android_init STATIC AndroidPlatform.cpp)
-target_link_libraries(android_init PUBLIC Qt::Core Qt::Gui Qt::Network LibCompress LibArchive LibFileSystem)
+add_library(android_init STATIC
+  AndroidPlatform.cpp
+)
+target_link_libraries(android_init PUBLIC Qt::Core Qt::CorePrivate Qt::Gui Qt::Network LibArchive LibFileSystem)
 
 macro(link_android_libs target)
     target_link_libraries(${target} PRIVATE android_init)
@@ -31,13 +33,17 @@ FetchContent_Declare(android_openssl
     GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(android_openssl)
+
+# Fix up Ladybird libraries, and android specific properties
 link_android_libs(ladybird)
-target_link_libraries(ladybird PRIVATE Qt::Network)
+target_link_libraries(ladybird PRIVATE Qt::Multimedia)
 set_property(TARGET ladybird APPEND PROPERTY QT_ANDROID_EXTRA_LIBS ${ANDROID_EXTRA_LIBS}
   "${CMAKE_CURRENT_BINARY_DIR}/WebContent/libWebContent_${ANDROID_ABI}.so"
   "${CMAKE_CURRENT_BINARY_DIR}/SQLServer/libSQLServer_${ANDROID_ABI}.so"
   "${CMAKE_CURRENT_BINARY_DIR}/WebDriver/libWebDriver_${ANDROID_ABI}.so"
 )
+target_sources(ladybird PRIVATE WebContentServiceAndroid.cpp)
+target_sources(headless-browser PRIVATE WebContentServiceAndroid.cpp)
 
 #
 # Copy resources into tarball for inclusion in /assets of APK

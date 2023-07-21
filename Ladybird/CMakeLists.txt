@@ -86,6 +86,7 @@ set(SOURCES
     EventLoopImplementationQt.cpp
     HelperProcess.cpp
     InspectorWidget.cpp
+    LaunchWebContent.cpp
     LocationEdit.cpp
     ModelTranslator.cpp
     Settings.cpp
@@ -109,6 +110,7 @@ qt_add_executable(headless-browser
     ${SERENITY_SOURCE_DIR}/Userland/Utilities/headless-browser.cpp
     ${SERENITY_SOURCE_DIR}/Userland/Services/WebContent/WebDriverConnection.cpp
     HelperProcess.cpp
+    LaunchWebContent.cpp
     Utilities.cpp)
 
 target_include_directories(headless-browser PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

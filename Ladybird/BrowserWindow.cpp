@@ -25,6 +25,10 @@
 #include <QPlainTextEdit>
 #include <QTabBar>
 
+#ifdef AK_OS_ANDROID
+#    include "WebContentServiceAndroid.h"
+#endif
+
 extern DeprecatedString s_serenity_resource_root;
 extern Browser::Settings* s_settings;
 
@@ -395,6 +399,10 @@ BrowserWindow::BrowserWindow(Browser::CookieJar& cookie_jar, StringView webdrive
     m_reload_action->setShortcuts(QKeySequence::keyBindings(QKeySequence::StandardKey::Refresh));
     m_go_back_action->setEnabled(false);
     m_go_forward_action->setEnabled(false);
+
+#ifdef AK_OS_ANDROID
+    new WebContentServiceAndroid(this);
+#endif
 
     new_tab(s_settings->new_tab_page(), Web::HTML::ActivateTab::Yes);
 
