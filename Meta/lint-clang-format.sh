@@ -9,6 +9,7 @@ if [ "$#" -eq "1" ]; then
     mapfile -t files < <(
         git ls-files -- \
             '*.cpp' \
+            '*.mm' \
             '*.h' \
             ':!:Base' \
             ':!:Kernel/FileSystem/Ext2FS/Definitions.h' \
@@ -19,7 +20,7 @@ if [ "$#" -eq "1" ]; then
 else
     files=()
     for file in "${@:2}"; do
-        if [[ "${file}" == *".cpp" || "${file}" == *".h" ]]; then
+        if [[ "${file}" == *".cpp" || "${file}" == *".mm" || "${file}" == *".h" ]]; then
             files+=("${file}")
         fi
     done
@@ -60,5 +61,5 @@ if (( ${#files[@]} )); then
     "${CLANG_FORMAT}" -style=file -i "${files[@]}"
     echo "Maybe some files have changed. Sorry, but clang-format doesn't indicate what happened."
 else
-    echo "No .cpp or .h files to check."
+    echo "No .cpp, .mm or .h files to check."
 fi
