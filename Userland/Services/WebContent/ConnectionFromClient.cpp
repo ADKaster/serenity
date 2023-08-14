@@ -360,6 +360,11 @@ void ConnectionFromClient::report_finished_handling_input_event(bool event_was_h
 
 void ConnectionFromClient::debug_request(DeprecatedString const& request, DeprecatedString const& argument)
 {
+    if (request == "dump-session-history") {
+        auto const& traversable = page().top_level_traversable();
+        Web::dump_tree(*traversable);
+    }
+
     if (request == "dump-dom-tree") {
         if (auto* doc = page().top_level_browsing_context().active_document())
             Web::dump_tree(*doc);
