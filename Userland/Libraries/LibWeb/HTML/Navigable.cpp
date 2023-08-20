@@ -680,6 +680,9 @@ static WebIDL::ExceptionOr<Optional<NavigationParams>> create_navigation_params_
 // https://html.spec.whatwg.org/multipage/browsing-the-web.html#attempt-to-populate-the-history-entry's-document
 WebIDL::ExceptionOr<void> Navigable::populate_session_history_entry_document(JS::GCPtr<SessionHistoryEntry> entry, Optional<NavigationParams> navigation_params, Optional<String> navigation_id, SourceSnapshotParams const& source_snapshot_params, bool allow_POST, Function<void()> completion_steps)
 {
+    if (!entry->url.is_valid())
+        return {};
+
     // FIXME: 1. Assert: this is running in parallel.
 
     // 2. Assert: if navigationParams is non-null, then navigationParams's response is non-null.
