@@ -532,6 +532,8 @@ public:
 
     HTML::SourceSnapshotParams snapshot_source_snapshot_params() const;
 
+    void update_document_for_history_step_application(JS::NonnullGCPtr<HTML::SessionHistoryEntry> entry, bool do_not_reactivate, int script_history_length, int script_history_index);
+
 protected:
     virtual void initialize(JS::Realm&) override;
     virtual void visit_edges(Cell::Visitor&) override;
@@ -728,6 +730,10 @@ private:
     RefPtr<Core::Timer> m_active_refresh_timer;
 
     bool m_temporary_document_for_fragment_parsing { false };
+
+    // https://html.spec.whatwg.org/multipage/browsing-the-web.html#latest-entry
+    // A Document has a latest entry, a session history entry or null.
+    JS::GCPtr<HTML::SessionHistoryEntry> m_latest_entry;
 };
 
 template<>

@@ -3505,4 +3505,13 @@ Painting::ViewportPaintable* Document::paintable()
     return static_cast<Painting::ViewportPaintable*>(Node::paintable());
 }
 
+// https://html.spec.whatwg.org/multipage/browsing-the-web.html#update-document-for-history-step-application
+void Document::update_document_for_history_step_application(JS::NonnullGCPtr<HTML::SessionHistoryEntry> entry, bool do_not_reactivate, int script_history_length, int script_history_index)
+{
+    (void)entry;
+    (void)do_not_reactivate;
+    (void)script_history_length;
+    (void)script_history_index;
+}
+
 }
