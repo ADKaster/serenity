@@ -222,7 +222,8 @@ void Node::set_needs_display()
         return;
     static_cast<Painting::PaintableWithLines const&>(*containing_block->paintable_box()).for_each_fragment([&](auto& fragment) {
         if (&fragment.layout_node() == this || is_ancestor_of(fragment.layout_node())) {
-            browsing_context().set_needs_display(fragment.absolute_rect());
+            if (navigable())
+                navigable()->set_needs_display(fragment.absolute_rect());
         }
         return IterationDecision::Continue;
     });
