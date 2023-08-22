@@ -194,6 +194,11 @@ HTML::BrowsingContext& Node::browsing_context()
     return *m_browsing_context;
 }
 
+JS::GCPtr<HTML::Navigable> Node::navigable() const
+{
+    return document().navigable();
+}
+
 Viewport const& Node::root() const
 {
     VERIFY(document().layout_node());
