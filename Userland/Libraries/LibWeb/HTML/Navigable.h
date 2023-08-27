@@ -50,6 +50,8 @@ public:
 
     Vector<JS::Handle<Navigable>> child_navigables() const;
 
+    bool is_traversable() const;
+
     String const& id() const { return m_id; }
     JS::GCPtr<Navigable> parent() const { return m_parent; }
 

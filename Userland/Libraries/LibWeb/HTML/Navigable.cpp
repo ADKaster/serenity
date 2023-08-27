@@ -68,6 +68,11 @@ Vector<JS::Handle<Navigable>> Navigable::child_navigables() const
     return results;
 }
 
+bool Navigable::is_traversable() const
+{
+    return is<TraversableNavigable>(*this);
+}
+
 Navigable::Navigable()
 {
     all_navigables().set(this);
