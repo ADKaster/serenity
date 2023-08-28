@@ -172,6 +172,7 @@ void Navigable::activate_history_entry(JS::GCPtr<SessionHistoryEntry> entry)
     if (is<TraversableNavigable>(*this) && parent() == nullptr) {
         if (auto* page = active_browsing_context()->page()) {
             page->client().page_did_start_loading(entry->url, false);
+            page->client().page_did_create_main_document();
         }
     }
 }
