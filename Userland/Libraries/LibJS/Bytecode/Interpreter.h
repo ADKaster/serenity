@@ -121,7 +121,7 @@ private:
     Optional<Value> m_saved_exception;
     Executable* m_current_executable { nullptr };
     BasicBlock const* m_current_block { nullptr };
-    InstructionStreamIterator* m_pc { nullptr };
+    Optional<InstructionStreamIterator&> m_pc { };
 };
 
 extern bool g_dump_bytecode;

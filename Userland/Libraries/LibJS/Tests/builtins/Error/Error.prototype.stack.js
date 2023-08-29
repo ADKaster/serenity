@@ -3,13 +3,13 @@ const stackGetter = stackDescriptor.get;
 const stackSetter = stackDescriptor.set;
 
 describe("getter - normal behavior", () => {
-    test.xfail("basic functionality", () => {
+    test("basic functionality", () => {
         const stackFrames = [
             /^    at .*Error \(.*\/Error\.prototype\.stack\.js:\d+:\d+\)$/,
             /^    at .+\/Error\/Error\.prototype\.stack\.js:\d+:\d+$/,
             /^    at test \(.+\/test-common.js:\d+:\d+\)$/,
             /^    at (.+\/test-common.js:\d+:\d+)/,
-            /^    at .+\/Error\/Error\.prototype\.stack\.js:6:73$/,
+            /^    at .+\/Error\/Error\.prototype\.stack\.js:6:33$/,
             /^    at describe \(.+\/test-common\.js:\d+:\d+\)$/,
             /^    at .+\/Error\/Error\.prototype\.stack\.js:5:38$/,
         ];
@@ -31,9 +31,14 @@ describe("getter - normal behavior", () => {
             },
         ];
 
+        for (const e of values) {
+            console.log(e.error.stack)
+        }
+
         for (const { error, header: expectedHeader, stackFrames: expectedStackFrames } of values) {
             const [header, ...stackFrames] = error.stack.trim().split("\n");
 
+            console.log(`stack: ${error}`);
             expect(header).toBe(expectedHeader);
             expect(stackFrames).toHaveLength(expectedStackFrames.length);
             for (let i = 0; i < stackFrames.length; ++i) {

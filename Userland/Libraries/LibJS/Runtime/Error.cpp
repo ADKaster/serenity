@@ -83,9 +83,16 @@ void Error::populate_stack()
         if (function_name.is_empty())
             function_name = "<unknown>"sv;
 
+
+        UnrealizedSourceRange range = {};
+        if (context->instruction_stream.has_value())
+            range = context->instruction_stream->source_range();
+        else {
+            dbgln("Context at index {} doesn't have a source range :(", i);
+        }
         TracebackFrame frame {
             .function_name = move(function_name),
-            .source_range_storage = context->source_range,
+            .source_range_storage = range,
         };
 
         m_traceback.append(move(frame));

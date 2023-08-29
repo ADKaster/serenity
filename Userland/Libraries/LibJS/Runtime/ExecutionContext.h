@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "LibJS/Bytecode/Instruction.h"
 #include <AK/DeprecatedFlyString.h>
 #include <AK/WeakPtr.h>
 #include <LibJS/Forward.h>
@@ -43,7 +44,7 @@ public:
     // Non-standard: This points at something that owns this ExecutionContext, in case it needs to be protected from GC.
     GCPtr<Cell> context_owner;
 
-    UnrealizedSourceRange source_range;
+    Optional<Bytecode::InstructionStreamIterator&> instruction_stream {};
     DeprecatedFlyString function_name;
     Value this_value;
     MarkedVector<Value> arguments;

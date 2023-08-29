@@ -27,7 +27,7 @@ BasicBlock::BasicBlock(DeprecatedString name, size_t size)
 
 BasicBlock::~BasicBlock()
 {
-    Bytecode::InstructionStreamIterator it(instruction_stream());
+    Bytecode::InstructionStreamIterator it(instruction_stream(), *this);
     while (!it.at_end()) {
         auto& to_destroy = (*it);
         ++it;
@@ -47,7 +47,7 @@ void BasicBlock::seal()
 
 void BasicBlock::dump(Bytecode::Executable const& executable) const
 {
-    Bytecode::InstructionStreamIterator it(instruction_stream());
+    Bytecode::InstructionStreamIterator it(instruction_stream(), *this);
     if (!m_name.is_empty())
         warnln("{}:", m_name);
     while (!it.at_end()) {
