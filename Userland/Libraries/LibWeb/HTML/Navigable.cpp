@@ -169,9 +169,8 @@ void Navigable::activate_history_entry(JS::GCPtr<SessionHistoryEntry> entry)
     new_document->make_active();
 
     // Not in the spec:
-    if (is<TraversableNavigable>(*this) && parent() == nullptr) {
+    if (is_top_level_traversable()) {
         if (auto* page = active_browsing_context()->page()) {
-            page->client().page_did_start_loading(entry->url, false);
             page->client().page_did_create_main_document();
         }
     }
@@ -972,6 +971,11 @@ WebIDL::ExceptionOr<void> Navigable::navigate(
         (void)navigation_api_state_for_firing;
 
         // FIXME: 5. If continue is false, then return.
+    }
+
+    if (is_top_level_traversable()) {
+        if (auto* page = active_browsing_context()->page())
+            page->client().page_did_start_loading(url, false);
     }
 
     // 20. In parallel, run these steps:
