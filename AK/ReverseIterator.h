@@ -62,6 +62,16 @@ public:
     }
     SimpleReverseIterator(SimpleReverseIterator const& obj) = default;
 
+    ValueType& value_or(ValueType& default_value)
+    {
+        return is_end() ? default_value : *this;
+    }
+
+    ValueType const& value_or(ValueType const& default_value) const
+    {
+        return is_end() ? default_value : *this;
+    }
+
 private:
     static constexpr SimpleReverseIterator rbegin(Container& container)
     {

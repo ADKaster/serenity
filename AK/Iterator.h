@@ -65,6 +65,16 @@ public:
     }
     SimpleIterator(SimpleIterator const& obj) = default;
 
+    ValueType& value_or(ValueType& default_value)
+    {
+        return is_end() ? default_value : *this;
+    }
+
+    ValueType const& value_or(ValueType const& default_value) const
+    {
+        return is_end() ? default_value : *this;
+    }
+
 private:
     static constexpr SimpleIterator begin(Container& container) { return { container, 0 }; }
     static constexpr SimpleIterator end(Container& container)
