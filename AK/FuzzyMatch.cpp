@@ -4,9 +4,18 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
+#ifdef EXPORT_MODULE
+module;
+#include <stddef.h>
+#include <AK/PublicMacros.h>
+#include <string.h>
+
+module AK;
+#else
 #include <AK/CharacterTypes.h>
 #include <AK/FuzzyMatch.h>
 #include <string.h>
+#endif
 
 namespace AK {
 

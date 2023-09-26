@@ -4,8 +4,11 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
-#include <AK/Checked.h>
-#include <AK/Time.h>
+#ifdef EXPORT_MODULE
+module;
+#include <stddef.h>
+#include <AK/PublicMacros.h>
+#endif
 
 // Make a reasonable guess as to which timespec/timeval definition to use.
 // It doesn't really matter, since both are identical.
@@ -14,6 +17,13 @@
 #else
 #    include <sys/time.h>
 #    include <time.h>
+#endif
+
+#ifdef EXPORT_MODULE
+module AK;
+#else
+#include <AK/Checked.h>
+#include <AK/Time.h>
 #endif
 
 namespace AK {

@@ -4,9 +4,13 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
+
+#ifdef EXPORT_MODULE
+module;
+#include <stddef.h>
 #include <AK/Assertions.h>
 #include <AK/Platform.h>
-#include <AK/StackInfo.h>
+#endif
 #include <stdio.h>
 #include <string.h>
 
@@ -21,6 +25,12 @@
 #    include <Windows.h>
 // NOTE: Prevent clang-format from re-ordering this header order
 #    include <Processthreadsapi.h>
+#endif
+
+#ifdef EXPORT_MODULE
+module AK;
+#else
+#include <AK/StackInfo.h>
 #endif
 
 namespace AK {

@@ -5,6 +5,13 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
+
+#ifdef EXPORT_MODULE
+module;
+#include <stddef.h>
+#include <AK/PublicMacros.h>
+module AK;
+#else
 #include <AK/Base64.h>
 #include <AK/CharacterTypes.h>
 #include <AK/Debug.h>
@@ -13,6 +20,7 @@
 #include <AK/URL.h>
 #include <AK/URLParser.h>
 #include <AK/Utf8View.h>
+#endif
 
 namespace AK {
 

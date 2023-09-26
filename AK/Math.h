@@ -225,9 +225,6 @@ constexpr T round(T x)
     return ceil(x - .5);
 }
 
-template<Integral I, FloatingPoint P>
-ALWAYS_INLINE I round_to(P value);
-
 #if ARCH(X86_64)
 template<Integral I>
 ALWAYS_INLINE I round_to(long double value)

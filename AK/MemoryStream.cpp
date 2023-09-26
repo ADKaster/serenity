@@ -5,10 +5,17 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
+#ifdef EXPORT_MODULE
+module;
+#include <stddef.h>
+#include <AK/PublicMacros.h>
+module AK;
+#else
 #include <AK/ByteBuffer.h>
 #include <AK/FixedArray.h>
 #include <AK/MemMem.h>
 #include <AK/MemoryStream.h>
+#endif
 
 namespace AK {
 

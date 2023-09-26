@@ -5,7 +5,12 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
+#ifdef EXPORT_MODULE
+module AK;
+#else
+
 #include <AK/kmalloc.h>
+#endif
 
 #if defined(AK_OS_SERENITY) && !defined(KERNEL)
 
@@ -15,6 +20,10 @@
 // Memory allocated in one translation unit has to be deallocatable in another
 // translation unit, so these functions must be the same everywhere.
 // By making these functions global, this invariant is enforced.
+
+#ifdef EXPORT_MODULE
+module AK;
+#endif
 
 void* operator new(size_t size)
 {
@@ -65,5 +74,4 @@ void operator delete[](void* ptr, size_t) noexcept
 namespace AK_REPLACED_STD_NAMESPACE {
 const nothrow_t nothrow;
 }
-
 #endif

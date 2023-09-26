@@ -4,11 +4,21 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
+#ifdef EXPORT_MODULE
+module;
+#include <stddef.h>
+#include <AK/PublicMacros.h>
+#endif
+
 #include <AK/Assertions.h>
 #include <AK/Format.h>
 #include <AK/Platform.h>
 #include <AK/StringBuilder.h>
 #include <AK/StringView.h>
+
+#ifdef EXPORT_MODULE
+module AK;
+#endif
 
 #if (defined(AK_OS_LINUX) && !defined(AK_OS_ANDROID)) || defined(AK_LIBC_GLIBC) || defined(AK_OS_BSD_GENERIC) || defined(AK_OS_SOLARIS)
 #    define EXECINFO_BACKTRACE

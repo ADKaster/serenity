@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
+#ifndef EXPORT_MODULE
 #include <AK/CharacterTypes.h>
 #include <AK/Format.h>
 #include <AK/GenericLexer.h>
@@ -11,6 +12,13 @@
 #include <AK/String.h>
 #include <AK/StringBuilder.h>
 #include <AK/kstdio.h>
+#endif
+
+#ifdef EXPORT_MODULE
+module;
+#include <stddef.h>
+#include <AK/PublicMacros.h>
+#endif
 
 #if defined(AK_OS_SERENITY) && !defined(KERNEL)
 #    include <serenity.h>
@@ -28,6 +36,10 @@
 
 #if defined(AK_OS_ANDROID)
 #    include <android/log.h>
+#endif
+
+#ifdef EXPORT_MODULE
+module AK;
 #endif
 
 namespace AK {

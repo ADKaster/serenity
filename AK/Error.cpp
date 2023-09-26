@@ -4,10 +4,17 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
+#ifdef EXPORT_MODULE
+module;
+#include <stddef.h>
+#include <AK/PublicMacros.h>
+module AK;
+#else
 #include <AK/Error.h>
 
 #ifdef KERNEL
 #    include <AK/Format.h>
+#endif
 #endif
 
 namespace AK {
