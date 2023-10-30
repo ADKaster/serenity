@@ -26,18 +26,14 @@ set(SOURCES
     ResourceImplementationFile.cpp
     SecretString.cpp
     SessionManagement.cpp
-    Socket.cpp
-    SOCKSProxyClient.cpp
     StandardPaths.cpp
     System.cpp
     SystemServerTakeover.cpp
-    TCPServer.cpp
     ThreadEventQueue.cpp
     Timer.cpp
-    UDPServer.cpp
     Version.cpp
 )
-if (NOT ANDROID AND NOT WIN32 AND NOT EMSCRIPTEN)
+if (NOT ANDROID AND NOT WIN32 AND NOT EMSCRIPTEN AND NOT WASI)
     list(APPEND SOURCES
         Account.cpp
         FilePermissionsMask.cpp
@@ -45,14 +41,21 @@ if (NOT ANDROID AND NOT WIN32 AND NOT EMSCRIPTEN)
         Group.cpp
     )
 endif()
-if (NOT WIN32 AND NOT EMSCRIPTEN)
+if (NOT WIN32 AND NOT EMSCRIPTEN AND NOT WASI)
     list(APPEND SOURCES LocalServer.cpp)
+endif()
+if (NOT WASI)
+    list(APPEND SOURCES
+    TCPServer.cpp
+    UDPServer.cpp
+        Socket.cpp
+        SOCKSProxyClient.cpp)
 endif()
 
 # FIXME: Implement Core::FileWatcher for macOS, *BSD, and Windows.
 if (SERENITYOS)
     list(APPEND SOURCES FileWatcherSerenity.cpp)
-elseif (LINUX AND NOT EMSCRIPTEN)
+elseif (LINUX AND NOT EMSCRIPTEN AND NOT WASI)
     list(APPEND SOURCES FileWatcherLinux.cpp)
 elseif (APPLE)
     list(APPEND SOURCES FileWatcherMacOS.mm)

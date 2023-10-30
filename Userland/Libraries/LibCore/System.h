@@ -15,19 +15,13 @@
 #include <AK/Vector.h>
 #include <dirent.h>
 #include <fcntl.h>
-#include <grp.h>
-#include <netdb.h>
 #include <poll.h>
-#include <pwd.h>
 #include <signal.h>
-#include <spawn.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/utsname.h>
-#include <sys/wait.h>
-#include <termios.h>
 #include <time.h>
 #include <utime.h>
 
@@ -35,7 +29,7 @@
 #    include <Kernel/API/Jail.h>
 #endif
 
-#if !defined(AK_OS_BSD_GENERIC) && !defined(AK_OS_ANDROID)
+#if !defined(AK_OS_BSD_GENERIC) && !defined(AK_OS_ANDROID) && !defined(AK_OS_WASI)
 #    include <shadow.h>
 #endif
 
@@ -46,6 +40,15 @@
 #ifdef AK_OS_SOLARIS
 #    include <sys/filio.h>
 #    include <ucred.h>
+#endif
+
+#if !defined(AK_OS_WASI)
+#    include <grp.h>
+#    include <netdb.h>
+#    include <pwd.h>
+#    include <spawn.h>
+#    include <sys/wait.h>
+#    include <termios.h>
 #endif
 
 namespace Core::System {
@@ -140,6 +143,7 @@ ErrorOr<DeprecatedString> gethostname();
 ErrorOr<void> sethostname(StringView);
 ErrorOr<DeprecatedString> getcwd();
 ErrorOr<void> ioctl(int fd, unsigned request, ...);
+#ifndef AK_OS_WASI
 ErrorOr<struct termios> tcgetattr(int fd);
 ErrorOr<void> tcsetattr(int fd, int optional_actions, struct termios const&);
 ErrorOr<int> tcsetpgrp(int fd, pid_t pgrp);
@@ -171,6 +175,7 @@ ErrorOr<void> setpgid(pid_t pid, pid_t pgid);
 ErrorOr<pid_t> setsid();
 ErrorOr<pid_t> getsid(pid_t pid = 0);
 ErrorOr<void> drop_privileges();
+#endif // ^ !WASI
 ErrorOr<bool> isatty(int fd);
 ErrorOr<void> link(StringView old_path, StringView new_path);
 ErrorOr<void> symlink(StringView target, StringView link_path);
@@ -242,6 +247,7 @@ ErrorOr<void> create_block_device(StringView name, mode_t mode, unsigned major, 
 ErrorOr<void> create_char_device(StringView name, mode_t mode, unsigned major, unsigned minor);
 #endif
 
+#ifndef AK_OS_WASI
 class AddressInfoVector {
     AK_MAKE_NONCOPYABLE(AddressInfoVector);
     AK_MAKE_DEFAULT_MOVABLE(AddressInfoVector);
@@ -269,6 +275,7 @@ private:
 };
 
 ErrorOr<AddressInfoVector> getaddrinfo(char const* nodename, char const* servname, struct addrinfo const& hints);
+#endif
 
 #ifdef AK_OS_SERENITY
 ErrorOr<void> posix_fallocate(int fd, off_t offset, off_t length);

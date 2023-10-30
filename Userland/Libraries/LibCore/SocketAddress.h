@@ -62,7 +62,7 @@ public:
             return "[SocketAddress]";
         }
     }
-
+#ifndef AK_OS_WASI
     Optional<sockaddr_un> to_sockaddr_un() const
     {
         VERIFY(type() == Type::Local);
@@ -73,6 +73,7 @@ public:
             return {};
         return address;
     }
+#endif
 
     sockaddr_in to_sockaddr_in() const
     {

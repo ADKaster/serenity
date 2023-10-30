@@ -524,7 +524,7 @@ ErrorOr<int> anon_create([[maybe_unused]] size_t size, [[maybe_unused]] int opti
         TRY(close(fd));
         return Error::from_errno(saved_errno);
     }
-#elif defined(AK_OS_BSD_GENERIC) || defined(AK_OS_EMSCRIPTEN) || defined(AK_OS_HAIKU)
+#elif defined(AK_OS_BSD_GENERIC) || defined(AK_OS_EMSCRIPTEN) || defined(AK_OS_WASI) || defined(AK_OS_HAIKU)
     struct timespec time;
     clock_gettime(CLOCK_REALTIME, &time);
     auto name = DeprecatedString::formatted("/shm-{}{}", (unsigned long)time.tv_sec, (unsigned long)time.tv_nsec);
@@ -1837,7 +1837,7 @@ ErrorOr<String> current_executable_path()
     if (sizeof(info.name) > sizeof(path))
         return Error::from_errno(ENAMETOOLONG);
     strlcpy(path, info.name, sizeof(path) - 1);
-#elif defined(AK_OS_EMSCRIPTEN)
+#elif defined(AK_OS_EMSCRIPTEN) || defined(AK_OS_WASI)
     return Error::from_string_view("current_executable_path() unknown on this platform"sv);
 #else
 #    warning "Not sure how to get current_executable_path on this platform!"

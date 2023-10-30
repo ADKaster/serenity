@@ -14,6 +14,10 @@
 #include <LibCore/Notifier.h>
 #include <LibCore/SocketAddress.h>
 
+#ifndef MSG_NOSIGNAL
+#    define MSG_NOSIGNAL 0
+#endif
+
 namespace Core {
 
 /// The Socket class is the base class for all concrete BSD-style socket

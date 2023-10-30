@@ -124,6 +124,8 @@
 
 #if defined(__EMSCRIPTEN__)
 #    define AK_OS_EMSCRIPTEN
+#elif defined(__wasi__)
+#    define AK_OS_WASI
 #endif
 
 #define ARCH(arch) (AK_IS_ARCH_##arch())

@@ -31,7 +31,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#ifndef AK_OS_EMSCRIPTEN
+#if !defined(AK_OS_EMSCRIPTEN)
 #    error "This program is for Emscripten only"
 #endif
 

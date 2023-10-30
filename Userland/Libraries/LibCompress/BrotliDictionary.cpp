@@ -13,7 +13,7 @@ extern u8 const brotli_dictionary_data[];
 asm(".const_data\n"
     ".globl _brotli_dictionary_data\n"
     "_brotli_dictionary_data:\n");
-#elif defined(AK_OS_EMSCRIPTEN)
+#elif defined(AK_OS_EMSCRIPTEN) || defined(AK_OS_WASI)
 asm(".section .data, \"\",@\n"
     ".global brotli_dictionary_data\n"
     "brotli_dictionary_data:\n");
@@ -23,7 +23,7 @@ asm(".section .rodata\n"
     "brotli_dictionary_data:\n");
 #endif
 asm(".incbin \"LibCompress/BrotliDictionaryData.bin\"\n"
-#if (!defined(AK_OS_WINDOWS) && !defined(AK_OS_EMSCRIPTEN))
+#if (!defined(AK_OS_WINDOWS) && !defined(AK_OS_EMSCRIPTEN) && !defined(AK_OS_WASI))
     ".previous\n");
 #else
 );

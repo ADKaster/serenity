@@ -10,6 +10,11 @@ if (NOT WIN32)
     add_compile_options(-fPIC)
 endif()
 
+if (WASI)
+    add_compile_definitions(_WASI_EMULATED_SIGNAL)
+    add_link_options(-lwasi-emulated-signal)
+endif()
+
 function(add_linker_flag_if_supported flag)
     include(CheckLinkerFlag)
 

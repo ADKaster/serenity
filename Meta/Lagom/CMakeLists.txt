@@ -459,7 +459,7 @@ if (BUILD_LAGOM)
         compile_ipc(${SERENITY_PROJECT_ROOT}/Userland/Services/WebContent/WebDriverServer.ipc Userland/Services/WebContent/WebDriverServerEndpoint.h)
     endif()
 
-    if (NOT EMSCRIPTEN)
+    if (NOT EMSCRIPTEN AND NOT WASI)
         # FIXME: Create a LIBELF_SOURCES macro similar to AK
         file(GLOB LIBELF_SOURCES CONFIGURE_DEPENDS "../../Userland/Libraries/LibELF/*.cpp")
         # There's no way we can reliably make the dynamic loading classes cross platform
@@ -511,19 +511,19 @@ if (BUILD_LAGOM)
         add_executable(aconv ../../Userland/Utilities/aconv.cpp)
         target_link_libraries(aconv LibCore LibMain LibFileSystem LibAudio)
 
-        if (NOT EMSCRIPTEN)
+        if (NOT EMSCRIPTEN AND NOT WASI)
             add_executable(adjtime ../../Userland/Utilities/adjtime.cpp)
             target_link_libraries(adjtime LibCore LibMain)
         endif()
 
         # FIXME: Excluding arm64 is a temporary hack to circumvent a build problem
         #        for Lagom on Apple M1
-        if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm64" AND NOT EMSCRIPTEN)
+        if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm64" AND NOT EMSCRIPTEN AND NOT WASI)
             add_executable(disasm ../../Userland/Utilities/disasm.cpp)
             target_link_libraries(disasm LibCore LibELF LibX86 LibMain)
         endif()
 
-        if (NOT EMSCRIPTEN)
+        if (NOT EMSCRIPTEN AND NOT WASI)
             # LibELF is part of LibC in SerenityOS builds, but not in Lagom.
             add_executable(file ../../Userland/Utilities/file.cpp)
             target_link_libraries(file LibAudio LibArchive LibCompress LibCore LibELF LibGfx LibIPC LibMain)
@@ -560,7 +560,7 @@ if (BUILD_LAGOM)
 
         add_executable(js ../../Userland/Utilities/js.cpp)
         target_link_libraries(js LibCrypto LibJS LibLine LibLocale LibMain LibTextCodec Threads::Threads)
-        if (EMSCRIPTEN)
+        if (EMSCRIPTEN OR WASI)
             add_executable(libjs Wasm/js_repl.cpp)
             target_link_libraries(libjs LibJS LibLocale LibTimeZone LibUnicode)
             target_link_options(libjs PRIVATE
@@ -576,7 +576,7 @@ if (BUILD_LAGOM)
         add_executable(markdown-check ../../Userland/Utilities/markdown-check.cpp)
         target_link_libraries(markdown-check LibFileSystem LibMarkdown LibMain LibManual)
 
-        if (NOT EMSCRIPTEN)
+        if (NOT EMSCRIPTEN AND NOT WASI)
             add_executable(ntpquery ../../Userland/Utilities/ntpquery.cpp)
             target_link_libraries(ntpquery LibCore LibMain)
         endif()
@@ -605,7 +605,7 @@ if (BUILD_LAGOM)
                 ASSERT_FAIL_HAS_INT
             )
         endif()
-        if (ASSERT_FAIL_HAS_INT OR EMSCRIPTEN)
+        if (ASSERT_FAIL_HAS_INT OR EMSCRIPTEN OR WASI)
             target_compile_definitions(test262-runner PRIVATE ASSERT_FAIL_HAS_INT)
         endif()
 
@@ -676,7 +676,7 @@ if (BUILD_LAGOM)
         endif()
 
         # LibCore
-        if ((LINUX OR APPLE) AND NOT EMSCRIPTEN)
+        if ((LINUX OR APPLE) AND NOT EMSCRIPTEN AND NOT WASI)
             lagom_test(../../Tests/LibCore/TestLibCoreFileWatcher.cpp)
             lagom_test(../../Tests/LibCore/TestLibCorePromise.cpp LIBS LibThreading)
         endif()
