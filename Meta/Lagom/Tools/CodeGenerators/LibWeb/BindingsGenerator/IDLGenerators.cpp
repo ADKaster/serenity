@@ -219,10 +219,8 @@ CppType idl_type_name_to_cpp_type(Type const& type, Interface const& interface)
     }
 
     if (!type.is_nullable()) {
-        for (auto& dictionary : interface.dictionaries) {
-            if (type.name() == dictionary.key)
-                return { .name = type.name(), .sequence_storage_type = SequenceStorageType::Vector };
-        }
+        if (interface.dictionaries.contains(type.name()))
+            return { .name = type.name(), .sequence_storage_type = SequenceStorageType::Vector };
     }
 
     dbgln("Unimplemented type for idl_type_name_to_cpp_type: {}{}", type.name(), type.is_nullable() ? "?" : "");
@@ -990,18 +988,10 @@ static void generate_to_cpp(SourceGenerator& generator, ParameterType& parameter
         // 3. Let types be the flattened member types of the union type.
         auto types = union_type.flattened_member_types();
 
-        RefPtr<Type const> dictionary_type;
-        for (auto& dictionary : interface.dictionaries) {
-            for (auto& type : types) {
-                if (type->name() == dictionary.key) {
-                    dictionary_type = type;
-                    break;
-                }
-            }
-
-            if (dictionary_type)
-                break;
-        }
+        auto dictionary_type_it = types.find_if([&](auto& type) {
+            return interface.dictionaries.contains(type->name());
+        });
+        auto dictionary_type = dictionary_type_it.is_end() ? nullptr : *dictionary_type_it;
 
         if (dictionary_type) {
             auto dictionary_generator = union_generator.fork();
@@ -2082,9 +2072,9 @@ static Vector<EffectiveOverloadSet::Item> compute_the_effective_overload_set(aut
     return overloads;
 }
 
-static ByteString generate_constructor_for_idl_type(Type const& type)
+static ByteString generate_constructor_for_idl_type(Type const& type, Interface const& interface)
 {
-    auto append_type_list = [](auto& builder, auto const& type_list) {
+    auto append_type_list = [&interface](auto& builder, auto const& type_list) {
         bool first = true;
         for (auto const& child_type : type_list) {
             if (first) {
@@ -2093,13 +2083,16 @@ static ByteString generate_constructor_for_idl_type(Type const& type)
                 builder.append(", "sv);
             }
 
-            builder.append(generate_constructor_for_idl_type(child_type));
+            builder.append(generate_constructor_for_idl_type(child_type, interface));
         }
     };
 
     switch (type.kind()) {
     case Type::Kind::Plain:
-        return ByteString::formatted("make_ref_counted<IDL::Type>(\"{}\", {})", type.name(), type.is_nullable());
+        if (interface.dictionaries.contains(type.name()))
+            return ByteString::formatted("make_ref_counted<IDL::Type>(IDL::Type::Kind::Plain, \"{}\", \"dictionary\", {})", type.name(), type.is_nullable());
+        else
+            return ByteString::formatted("make_ref_counted<IDL::Type>(\"{}\", {})", type.name(), type.is_nullable());
     case Type::Kind::Parameterized: {
         auto const& parameterized_type = type.as_parameterized();
         StringBuilder builder;
@@ -2202,7 +2195,7 @@ JS_DEFINE_NATIVE_FUNCTION(@class_name@::@function.name:snakecase@)
                     optionality_builder.append(", "sv);
                 }
 
-                types_builder.append(generate_constructor_for_idl_type(overload.types[i]));
+                types_builder.append(generate_constructor_for_idl_type(overload.types[i], interface));
 
                 optionality_builder.append("IDL::Optionality::"sv);
                 switch (overload.optionality_values[i]) {

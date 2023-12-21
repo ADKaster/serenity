@@ -32,7 +32,7 @@ static bool has_overload_with_argument_type_or_subtype_matching(IDL::EffectiveOv
     //       So, this function lets you pass in the first check, and handles the others automatically.
 
     return overloads.has_overload_with_matching_argument_at_index(argument_index,
-        [match](IDL::Type const& type, auto) {
+        [match = move(match)](IDL::Type const& type, auto) {
             if (match(type))
                 return true;
 
@@ -66,6 +66,22 @@ JS::ThrowCompletionOr<ResolvedOverload> resolve_overload(JS::VM& vm, IDL::Effect
     //       of arguments. Therefore, we do not need to remove any entry from that set here. However, we do need to handle
     //       when the number of user-provided arguments exceeds the overload set's argument count.
     int argument_count = min(vm.argument_count(), overloads.is_empty() ? 0 : overloads.items()[0].types.size());
+
+    dbgln("resolving overload with argument count {}", argument_count);
+    dbgln("\toverload set has {} items", overloads.items().size());
+    dbgln("\toverload set has {} entries", overloads.size());
+    dbgln("\toverload set has {} distinguishing argument index", overloads.distinguishing_argument_index());
+    for (auto const& item : overloads.items()) {
+        dbgln("\t\tentry has {} types", item.types.size());
+        dbgln("\t\tentry has {} optionality values", item.optionality_values.size());
+        for (auto const& type : item.types) {
+            dbgln("\t\t\ttype: {}", type->name());
+        }
+        for (auto const& optionality : item.optionality_values) {
+            dbgln("\t\t\toptionality: {}", optionality == IDL::Optionality::Optional ? "optional" : optionality == IDL::Optionality::Required ? "required"
+                                                                                                                                              : "variadic");
+        }
+    }
 
     // 5. If S is empty, then throw a TypeError.
     if (overloads.is_empty())
@@ -136,16 +152,14 @@ JS::ThrowCompletionOr<ResolvedOverload> resolve_overload(JS::VM& vm, IDL::Effect
         //       for dictionary types in the flattened members.
         else if ((value.is_undefined() || value.is_null())
             && overloads.has_overload_with_matching_argument_at_index(i, [](IDL::Type const& type, auto) {
-                   if (type.is_nullable())
+                   if (type.is_nullable() || type.is_dictionary())
                        return true;
-                   // FIXME: - a dictionary type
                    // FIXME: - an annotated type whose inner type is one of the above types
                    if (type.is_union()) {
                        auto flattened_members = type.as_union().flattened_member_types();
                        for (auto const& member : flattened_members) {
-                           if (member->is_nullable())
+                           if (member->is_nullable() || member->is_nullable())
                                return true;
-                           // FIXME: - a dictionary type
                            // FIXME: - an annotated type whose inner type is one of the above types
                        }
                        return false;
@@ -248,7 +262,7 @@ JS::ThrowCompletionOr<ResolvedOverload> resolve_overload(JS::VM& vm, IDL::Effect
             overloads.remove_all_other_entries();
         }
 
-        // FIXME: 9. Otherwise: if Type(V) is Object and there is an entry in S that has one of the following types at position i of its type list,
+        // 9. Otherwise: if Type(V) is Object and there is an entry in S that has one of the following types at position i of its type list,
         //    - a sequence type
         //    - a frozen array type
         //    - a nullable version of any of the above types
@@ -259,6 +273,19 @@ JS::ThrowCompletionOr<ResolvedOverload> resolve_overload(JS::VM& vm, IDL::Effect
         //        1. Let method be ? GetMethod(V, @@iterator).
         //    }
         //    method is not undefined, then remove from S all other entries.
+        else if (value.is_object()
+            && has_overload_with_argument_type_or_subtype_matching(overloads, i, [&value, &vm](IDL::Type const& type) {
+                   // FIXME: - a frozen array type
+                   if (type.is_sequence() || type.is_union()) {
+                       // 1. Let method be ? GetMethod(V, @@iterator).
+                       auto method = MUST(value.as_object().get(vm.names.iterator));
+                       if (!method.is_undefined())
+                           return true;
+                   }
+                   return false;
+               })) {
+            overloads.remove_all_other_entries();
+        }
 
         // 10. Otherwise: if Type(V) is Object and there is an entry in S that has one of the following types at position i of its type list,
         //     - a callback interface type
@@ -272,9 +299,8 @@ JS::ThrowCompletionOr<ResolvedOverload> resolve_overload(JS::VM& vm, IDL::Effect
         else if (value.is_object()
             && has_overload_with_argument_type_or_subtype_matching(overloads, i, [](IDL::Type const& type) {
                    // FIXME: - a callback interface type
-                   // FIXME: - a dictionary type
                    // FIXME: - a record type
-                   if (type.is_object())
+                   if (type.is_object() || type.is_dictionary())
                        return true;
                    return false;
                })) {

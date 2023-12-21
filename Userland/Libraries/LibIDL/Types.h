@@ -67,6 +67,14 @@ public:
     {
     }
 
+    Type(Kind kind, ByteString name, ByteString sugar, bool nullable)
+        : m_kind(kind)
+        , m_name(move(name))
+        , m_sugar(move(sugar))
+        , m_nullable(nullable)
+    {
+    }
+
     virtual ~Type() = default;
 
     Kind kind() const { return m_kind; }
@@ -82,6 +90,9 @@ public:
     UnionType& as_union();
 
     ByteString const& name() const { return m_name; }
+
+    ByteString const& sugar() const { return m_sugar; }
+    void set_sugar(ByteString sugar) { m_sugar = move(sugar); }
 
     bool is_nullable() const { return m_nullable; }
     void set_nullable(bool value) { m_nullable = value; }
@@ -133,6 +144,9 @@ public:
     // https://webidl.spec.whatwg.org/#idl-sequence
     bool is_sequence() const { return is_parameterized() && m_name == "sequence"; }
 
+    // https://webidl.spec.whatwg.org/#idl-dictionary
+    bool is_dictionary() const { return is_plain() && m_sugar == "dictionary"; }
+
     // https://webidl.spec.whatwg.org/#dfn-distinguishable
     bool is_distinguishable_from(Interface const&, Type const& other) const;
 
@@ -141,6 +155,7 @@ public:
 private:
     Kind m_kind;
     ByteString m_name;
+    ByteString m_sugar;
     bool m_nullable { false };
 };
 
