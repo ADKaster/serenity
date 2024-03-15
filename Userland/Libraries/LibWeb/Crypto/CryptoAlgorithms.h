@@ -87,6 +87,9 @@ struct RsaHashedKeyGenParams : public RsaKeyGenParams {
     static JS::ThrowCompletionOr<NonnullOwnPtr<AlgorithmParams>> from_value(JS::VM&, JS::Value);
 };
 
+// https://w3c.github.io/webcrypto/#dfn-RsaHashedImportParams
+using RsaHashedImportParams = RsaHashedKeyGenParams;
+
 class AlgorithmMethods {
 public:
     virtual ~AlgorithmMethods();
@@ -125,6 +128,8 @@ protected:
 class RSAOAEP : public AlgorithmMethods {
 public:
     virtual WebIDL::ExceptionOr<Variant<JS::NonnullGCPtr<CryptoKey>, JS::NonnullGCPtr<CryptoKeyPair>>> generate_key(AlgorithmParams const&, bool, Vector<Bindings::KeyUsage> const&) override;
+
+    virtual WebIDL::ExceptionOr<JS::NonnullGCPtr<CryptoKey>> import_key(AlgorithmParams const&, Bindings::KeyFormat, CryptoKey::InternalKeyData, bool, Vector<Bindings::KeyUsage> const&) override;
     virtual WebIDL::ExceptionOr<JS::NonnullGCPtr<JS::Object>> export_key(Bindings::KeyFormat, JS::NonnullGCPtr<CryptoKey>) override;
 
     static NonnullOwnPtr<AlgorithmMethods> create(JS::Realm& realm) { return adopt_own(*new RSAOAEP(realm)); }
@@ -163,5 +168,6 @@ private:
 };
 
 ErrorOr<String> base64_url_uint_encode(::Crypto::UnsignedBigInteger);
+WebIDL::ExceptionOr<::Crypto::UnsignedBigInteger> base64_url_uint_decode(JS::Realm&, String const& base64_url_string);
 
 }
