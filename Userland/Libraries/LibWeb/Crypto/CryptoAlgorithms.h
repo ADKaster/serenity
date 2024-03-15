@@ -90,6 +90,21 @@ struct RsaHashedKeyGenParams : public RsaKeyGenParams {
 // https://w3c.github.io/webcrypto/#dfn-RsaHashedImportParams
 using RsaHashedImportParams = RsaHashedKeyGenParams;
 
+// https://w3c.github.io/webcrypto/#dfn-RsaOaepParams
+struct RsaOaepParams : public AlgorithmParams {
+    virtual ~RsaOaepParams() override;
+
+    RsaOaepParams(String name, ByteBuffer label)
+        : AlgorithmParams(move(name))
+        , label(move(label))
+    {
+    }
+
+    ByteBuffer label;
+
+    static JS::ThrowCompletionOr<NonnullOwnPtr<AlgorithmParams>> from_value(JS::VM&, JS::Value);
+};
+
 class AlgorithmMethods {
 public:
     virtual ~AlgorithmMethods();
@@ -137,6 +152,8 @@ protected:
 
 class RSAOAEP : public AlgorithmMethods {
 public:
+    virtual WebIDL::ExceptionOr<JS::NonnullGCPtr<JS::ArrayBuffer>> encrypt(AlgorithmParams const&, JS::NonnullGCPtr<CryptoKey>, ByteBuffer const&) override;
+
     virtual WebIDL::ExceptionOr<Variant<JS::NonnullGCPtr<CryptoKey>, JS::NonnullGCPtr<CryptoKeyPair>>> generate_key(AlgorithmParams const&, bool, Vector<Bindings::KeyUsage> const&) override;
 
     virtual WebIDL::ExceptionOr<JS::NonnullGCPtr<CryptoKey>> import_key(AlgorithmParams const&, Bindings::KeyFormat, CryptoKey::InternalKeyData, bool, Vector<Bindings::KeyUsage> const&) override;
