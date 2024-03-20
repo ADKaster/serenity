@@ -97,6 +97,7 @@ WebIDL::ExceptionOr<::Crypto::UnsignedBigInteger> base64_url_uint_decode(JS::Rea
 
     auto base64_bytes_or_error = decode_base64url(base64_url_string);
     if (base64_bytes_or_error.is_error()) {
+        dbgln("Error in string '{}' decoding base64: {}", base64_url_string, base64_bytes_or_error.error());
         if (base64_bytes_or_error.error().code() == ENOMEM)
             return vm.throw_completion<JS::InternalError>(vm.error_message(::JS::VM::ErrorMessage::OutOfMemory));
         return WebIDL::DataError::create(realm, MUST(String::formatted("base64 decode: {}", base64_bytes_or_error.release_error())));
@@ -340,17 +341,41 @@ WebIDL::ExceptionOr<JS::NonnullGCPtr<JS::ArrayBuffer>> RSAOAEP::encrypt(Algorith
         return WebIDL::InvalidAccessError::create(realm, "Key is not a public key"_fly_string);
 
     // 2. Let label be the contents of the label member of normalizedAlgorithm or the empty octet string if the label member of normalizedAlgorithm is not present.
-    [[maybe_unused]] auto const& label = normalized_algorithm.label;
+    auto const& label = normalized_algorithm.label;
 
     // 3. Perform the encryption operation defined in Section 7.1 of [RFC3447] with the key represented by key as the recipient's RSA public key,
     //    the contents of plaintext as the message to be encrypted, M and label as the label, L, and with the hash function specified by the hash attribute
     //    of the [[algorithm]] internal slot of key as the Hash option and MGF1 (defined in Section B.2.1 of [RFC3447]) as the MGF option.
-
     // 4. If performing the operation results in an error, then throw an OperationError.
-
     // 5. Let ciphertext be the value C that results from performing the operation.
-    // FIXME: Actually encrypt the data
-    auto ciphertext = TRY_OR_THROW_OOM(vm, ByteBuffer::copy(plaintext));
+    auto hash_kind = [name = key->algorithm_name()]() -> ::Crypto::Hash::HashKind {
+        if (name == "SHA-256")
+            return ::Crypto::Hash::HashKind::SHA256;
+        if (name == "SHA-384")
+            return ::Crypto::Hash::HashKind::SHA384;
+        if (name == "SHA-512")
+            return ::Crypto::Hash::HashKind::SHA512;
+        return ::Crypto::Hash::HashKind::SHA1;
+    }();
+    auto const& public_key = key->handle().get<::Crypto::PK::RSAPublicKey<>>();
+
+    ::Crypto::PK::RSAES_OAEP rsaes_oaep(hash_kind, public_key, ::Crypto::PK::RSAPrivateKey<> {});
+    rsaes_oaep.set_label(label);
+
+    // FIXME: RSAES_OAEP::encrypt should be reporting errors to us. In the meantime, check its preconditions manually.
+    if (plaintext.size() > rsaes_oaep.max_message_length())
+        return WebIDL::OperationError::create(realm, "Message too long"_fly_string);
+
+    // FIXME: Check label length vs hash max message input size when such a thing exists
+
+    auto ciphertext = TRY_OR_THROW_OOM(vm, ByteBuffer::create_uninitialized(rsaes_oaep.output_size()));
+    auto ciphertext_bytes = ciphertext.bytes();
+
+    rsaes_oaep.encrypt(plaintext, ciphertext_bytes);
+
+    // FIXME: Why does encrypt mutate my out buffer pointer?
+    if (ciphertext_bytes.size() != ciphertext.size())
+        return WebIDL::OperationError::create(realm, "Encryption operation failed"_fly_string);
 
     // 6. Return the result of creating an ArrayBuffer containing ciphertext.
     return JS::ArrayBuffer::create(realm, move(ciphertext));
@@ -487,6 +512,30 @@ WebIDL::ExceptionOr<JS::NonnullGCPtr<CryptoKey>> RSAOAEP::import_key(Web::Crypto
         //    specified in Section A.1.1 of [RFC3447], and exactData set to true.
         // NOTE: We already did this in parse_a_subject_public_key_info
         auto& public_key = spki.rsa;
+
+        dbgln("Public key information from SPKI: n: {}, e: {}", public_key.modulus(), public_key.public_exponent());
+
+        AK::set_rich_debug_enabled(false);
+        u8 count = 0;
+        dbg("Public key modulus (little endian):\n   ");
+        for (auto& word : public_key.modulus().words()) {
+            auto write_byte = [&count](u8 byte) mutable {
+                dbg("{:02x}:", byte);
+                if (++count > 15) {
+                    dbg("\n   ");
+                    count = 0;
+                }
+            };
+            auto write_bytes = [&](auto word) mutable {
+                write_byte(word >> 24);
+                write_byte(word >> 16);
+                write_byte(word >> 8);
+                write_byte(word);
+            };
+            write_bytes(word);
+        }
+        dbgln();
+        AK::set_rich_debug_enabled(true);
 
         // 6. If an error occurred while parsing, or it can be determined that publicKey is not
         //    a valid public key according to [RFC3447], then throw a DataError.

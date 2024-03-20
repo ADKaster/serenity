@@ -387,4 +387,95 @@ void RSA_PKCS1_EME::verify(ReadonlyBytes, Bytes&)
 {
     dbgln("FIXME: RSA_PKCS_EME::verify");
 }
+
+// https://www.rfc-editor.org/rfc/rfc3447#section-7.1.1
+void RSAES_OAEP::encrypt(ReadonlyBytes in, Bytes& out)
+{
+    auto const h_len = m_hash_manager.digest_size();
+    auto const m_len = in.size();
+    auto const k = m_public_key.length();
+
+    auto& M = in;
+    auto& L = m_label;
+    auto& MGF = m_mask_generation_function;
+
+    // 1. Length checking:
+    //   a. If the length of L is greater than the input limitation for the hash function (2^61 - 1 octets for SHA-1),
+    //      output "label too long" and stop.
+    //   b. If mLen > k - 2hLen - 2, output "message too long" and stop.
+    // FIXME: Check label against hash input length
+    if (m_len > max_message_length()) {
+        dbgln("message too long");
+        return;
+    }
+
+    // 2. EME-OAEP encoding:
+    //   a. If the label L is not provided, let L be the empty string. Let
+    //      lHash = Hash(L), an octet string of length hLen (see the note below).
+    m_hash_manager.update(L);
+    auto const l_hash = m_hash_manager.digest();
+
+    //  b. Generate an octet string PS consisting of k - mLen - 2hLen - 2 zero octets.  The length of PS may be zero.
+    auto const ps_len = k - m_len - (2 * h_len) - 2;
+    auto PS = MUST(ByteBuffer::create_zeroed(ps_len));
+
+    //  c. Concatenate lHash, PS, a single octet with hexadecimal value
+    //     0x01, and the message M to form a data block DB of length k -
+    //     hLen - 1 octets as
+    //        DB = lHash || PS || 0x01 || M.
+    u8 one = 0x01;
+    auto DB = MUST(ByteBuffer::create_uninitialized(k - h_len - 1));
+    DB.overwrite(0, l_hash.immutable_data(), h_len);
+    DB.overwrite(h_len, PS.data(), ps_len);
+    DB.overwrite(h_len + ps_len, &one, 1);
+    DB.overwrite(h_len + ps_len + 1, M.data(), m_len);
+
+    //  d. Generate a random octet string seed of length hLen.
+    auto seed = MUST(ByteBuffer::create_uninitialized(h_len));
+    fill_with_random(seed);
+
+    //  e. Let dbMask = MGF(seed, k - hLen - 1).
+    auto db_mask_or_error = MGF(m_hash_manager.kind(), seed, k - h_len - 1);
+    if (db_mask_or_error.is_error()) {
+        dbgln("MGF failed: {}", db_mask_or_error.error());
+        return;
+    }
+    auto db_mask = db_mask_or_error.release_value();
+
+    // f. Let maskedDB = DB \xor dbMask.
+    auto masked_db = DB;
+    for (size_t i = 0; i < k - h_len - 1; ++i)
+        masked_db[i] ^= db_mask[i];
+
+    // g. Let seedMask = MGF(maskedDB, hLen).
+    auto seed_mask_or_error = MGF(m_hash_manager.kind(), masked_db, h_len);
+    if (seed_mask_or_error.is_error()) {
+        dbgln("MGF failed: {}", seed_mask_or_error.error());
+        return;
+    }
+    auto seed_mask = seed_mask_or_error.release_value();
+
+    // h. Let maskedSeed = seed \xor seedMask.
+    auto masked_seed = seed;
+    for (size_t i = 0; i < h_len; ++i)
+        masked_seed[i] ^= seed_mask[i];
+
+    // i. Concatenate a single octet with hexadecimal value 0x00,
+    //    maskedSeed, and maskedDB to form an encoded message EM of length k octets as
+    //      EM = 0x00 || maskedSeed || maskedDB.
+    auto EM = MUST(ByteBuffer::create_uninitialized(k));
+    u8 zero = 0x00;
+    EM.overwrite(0, &zero, 1);
+    EM.overwrite(1, masked_seed.data(), h_len);
+    EM.overwrite(1 + h_len, masked_db.data(), k - h_len - 1);
+
+    // 3.  RSA encryption:
+    RSA::encrypt(EM.bytes(), out);
+}
+
+// https://www.rfc-editor.org/rfc/rfc3447#section-7.1.2
+void RSAES_OAEP::decrypt(ReadonlyBytes, Bytes&)
+{
+}
+
 }

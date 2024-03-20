@@ -1,0 +1,49 @@
+<script src="../include.js"></script>
+<script>
+    function bufferToHex(buffer) {
+        return [...new Uint8Array(buffer)].map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    asyncTest(async done => {
+
+        let jwk_priv = {
+            kty: "RSA",
+            alg: "RSA-OAEP-256",
+            ext: true,
+            key_ops: ["decrypt", "unwrapKey"],
+            e: "AQAB",
+            d: "Af0qXpSZtOnJKwaPKQIcx9Y7dGkfstrzfWzc3T1bHtJvnsTDknhURp-nnB9nM9zjZJ5ieHPt9khtuq_2IcfhE3EEhxIgLPHgs17BTpzq2LD6opqwRn5RagYcn8DoQ8UowfOgC1gI1GxjEKnMBvC7qxsY7Xcc2YZt7TdmsvzgY-WdNI1eehdlq8jxfnbrehKtOQijaWkt4xq22FakCP9rB4hvd7nI9sUA-8yjDWMmK3FRo307KxonF-hzwLUcvH3IGLRpVg5qSVeJNH1JkXT0FfOtEI-4_3RNtw5gKKlNVNHgzC-_NyPgcsC5pBW5656YsRop-B7TDbwBBTUzjEXq7DacQwbbjWBHzuB_lPMzHB5YkUe2kN7zsnf3o1U8BCS8w6Eir312MYsibHmVVkQahmH7SN_QcjPBs55CxPaDlX16e7C1Q96qctvvid9_2yDD4MCCwfWbBO7LkNyesCcyp87yJi_ICtEUoE1d5U9YaP_YG8Xe2hAAYyvmUSJHDpqpUz0tvB3x2IEU8re9YhUVA8J7Eag-sb0YJeCrBPDu7iT4jQqzhbRF3NzG_P4QaIVEzI1qzi4ccAVBW9_s6C01IR42KMXOH6M3_-N65ogvcEjbiGwFJwSgTaAPGD18ofmiSbOSZKQujMT_GSGmFGEv-jNLs6e5TLwtlOZoaZciQB0",
+            n: "tdw7jmjuahN-o06N0dgZsq2CU_ZlP-WxYQH6gB-PMtPHo_zoPhypR9rwHaZJ2aMMl7eG3LGpGwQzeTy-R0JK8PFvMzgS9IAYu60FlAlzUJF74K9TjY-jQiyy5Jk7Q5Eb_OwWIiM-OLBCGA8_ZIveudJ5Gi1LUoQihM4OPz7oQbhso25JNIxINoJJiyzklbVHa15cs93RfauDApWbr3EkgL8VwWhFfRYlQPVSPxyu3cwPpZcMh9ajbQqu5ADfcgg_CQV2HynSX9YMsEJ0KrB0wpJEIBGzc2IxPTKG2BKR8lLnpXlQDfZjVsOwpBI3qb__5HJRtuKvY_Ayb7GxafotPC8ejFVpex2Ru_YBxX0W6p5mrWXS9_Uo6gedvhrQNbCXyccFmNm2hCDOWP7hp11G7v4laXOFo_tzllqSV88-G_HsnDNNl_V5T7WbByxLahLfGOCt8Xz1YxRWvxnNlieE2PwoZanBbD4KhEeYM4a8Njd0dj3J6dknTfK36EGA4P7BIhASnO3MDVN91zCc2WXjGsAvFOEZG0kzbUDzRHhKB9-l6Z7VjU9J6C7uVtHnWdj-vmvYCjtbn3m-rnF-yMhRnkeXat2b7KA1L-rXiDXY-iUkJsKN6wkUOcnOsWKujr77OvUVuSvCo9LS0af5YixX5yMggvNXTTQPngRxTaGFX8k",
+            p: "3AB8xHW_pZk0k2nLbQh4sQ7L3m7fPI-hGGr0XjLBY4aVUaOBKbmMX0mRWOqpx-MoGlJDwCtS1i2IyNWK_i6W24_lPILm8p199lvKcb9gzt9aufXx0O4d5MDrx-qEXc06NYl43liREayt4f_UKmQGxGKB4Hmx5DeiLqXsuvH39FwVbqc86uI5N4bg0RPgrxtYZQ18426LE9VB8qb5miuk3lY9Mhl-E8QFIbDo3OiB7zA47ZVTMnIjcTfz0Owp0rrdFfObop2fuxlAlwoPLxzUFNGB4XQ0rkhp90ajjXXovMLb0_gM70zgnmwiWNgP5bCVrERdRD9H3az3vEDbPRiiZQ",
+            q: "054Oc7myxxtiwVjdqBlnUTHMLVm1bA0f-tuIJxrdIOaSKV9ecYHr8QigAAnLsMmp9P-TrEYKtgzcj7lTuY9ia3eIBHgoa05IXjkk9qXipfM8XEpb3sD72qtJ7Cpn0RuJIYkASPYrlNvH7x-WMGxruFJ4hiodZnG1INlFKGBXmGToBP1DBEQe9jYS-AJ43D-OY8Oy2E5Uow8RB8tQ3fxtk64jzqo8IVYoHRkUpXjJNMl-5cz-UdJPlhjafgFlUzx0GjxTZS0cG8vNOaBJZy5GSBsu59wtMSkfEtUYbfS1_GlcxMEXF4Oewcwp_1Er9rL3XEkwsYVUMK4poloOudg_lQ",
+            dp: "vtH9ZjnrfKsiGyqMM4pBhPGcitYH8vNxe0hppLrJWpYFNcZn5dT2mD-rPkBr-uBgjFQGR8xMEVF1bx0pbcbjOpXY819nCdDozKJZOcgRI94_R0S39cxTSXK8D66uGN5FOuJ-X_zZ90abm4bWc95GsFfw5s8nKRfIKEXqy0vNEbo9LLkJ8YE-t5bZsP9Yxwkk5qGITYw4PX-fr-R8YuiwG9kZQzcxT9uZx9s2X0WcTea5ufjnLL4rV6x8Yh41OH6z_LJLsASf4xzIFTm4adjLazM9QFwWxYQxxTUT70LyF6e8HGLudTFtMnwAXqcpQsSjTcQOUX_BydiZGEP45UlUsQ",
+            dq: "KmmgPeN3CF7dwSCddEZ7JZPUdzZmnRxYT3_WXvgMX762hqI9nIRMlIeFAdz0vR79-EONBlcXaHtVbVzYgfVR5XYUhcjLWQ5chL3xQZnnvhjs_RZOKWwGTkJMU5AANLHPHzCFJRppi7Es9ikfgd8JC-1DiKhCMjkR8154dOoyRDHdKrrTxrQcfH5D-P8N2B7I3Afp_V5dqjynzicasxMXpyScupv15zyMV6CiObPmp7TGwSn_wshi-RNMHzsKYs9X-bYjhMCwxIVpQWZ1r79fiK4iDYhcamDygGTDO65zFv7LAAgvJ6BSnkbcF_bd19jwqMdmgf3V7NfLMmXYU7karQ",
+            qi: "R2qTj3F33OY4e6_n3O-YZv9Ycyb0YHUHpGQ2WGMYnK0MiJwWeouUyJ5C7fTiiBeTOEH6uVCsRh43bzC2CvXSb569Co8tuSCKkhk9oFkrHZyWpx6o9Bq4OMTRJ6gyYVbHc13qTwbXNuOtXxn4nFkxYWiRnoRuMHdTMFA_J7GxLZvo3QMURR8Nq9lZWncfu_t7P4i6s6hOfREy9Q48TonzPaInqc3IlkTp7nVaXw4RxcrpLtGqbCUSx2mz43q0c1TKwKUGBxvmus4Oe--YPvnwyezp4KGv7m_Ft8QNQIChKtQlrxtPdzjf-VF2tPOCbHF4pOdXy1RkFxlnSqMQIaMtIQ",
+        };
+
+        let jwk_pub = {
+            kty: "RSA",
+            alg: "RSA-OAEP-256",
+            ext: true,
+            key_ops: ["encrypt", "wrapKey"],
+            e: "AQAB",
+            n: "tdw7jmjuahN-o06N0dgZsq2CU_ZlP-WxYQH6gB-PMtPHo_zoPhypR9rwHaZJ2aMMl7eG3LGpGwQzeTy-R0JK8PFvMzgS9IAYu60FlAlzUJF74K9TjY-jQiyy5Jk7Q5Eb_OwWIiM-OLBCGA8_ZIveudJ5Gi1LUoQihM4OPz7oQbhso25JNIxINoJJiyzklbVHa15cs93RfauDApWbr3EkgL8VwWhFfRYlQPVSPxyu3cwPpZcMh9ajbQqu5ADfcgg_CQV2HynSX9YMsEJ0KrB0wpJEIBGzc2IxPTKG2BKR8lLnpXlQDfZjVsOwpBI3qb__5HJRtuKvY_Ayb7GxafotPC8ejFVpex2Ru_YBxX0W6p5mrWXS9_Uo6gedvhrQNbCXyccFmNm2hCDOWP7hp11G7v4laXOFo_tzllqSV88-G_HsnDNNl_V5T7WbByxLahLfGOCt8Xz1YxRWvxnNlieE2PwoZanBbD4KhEeYM4a8Njd0dj3J6dknTfK36EGA4P7BIhASnO3MDVN91zCc2WXjGsAvFOEZG0kzbUDzRHhKB9-l6Z7VjU9J6C7uVtHnWdj-vmvYCjtbn3m-rnF-yMhRnkeXat2b7KA1L-rXiDXY-iUkJsKN6wkUOcnOsWKujr77OvUVuSvCo9LS0af5YixX5yMggvNXTTQPngRxTaGFX8k",
+        };
+
+        let priv_key = await window.crypto.subtle.importKey("jwk", jwk_priv, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["decrypt", "unwrapKey"]);
+        let pub_key = await window.crypto.subtle.importKey("jwk", jwk_pub, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["encrypt", "wrapKey"]);
+
+        let data = new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+        println(`data: ${bufferToHex(data)}`);
+
+        let encrypted = await window.crypto.subtle.encrypt({ name: "RSA-OAEP" }, pub_key, data);
+        println(`encrypted: ${bufferToHex(encrypted)}`);
+
+        let decrypted = await window.crypto.subtle.decrypt({ name: "RSA-OAEP" }, priv_key, encrypted);
+        println(`decrypted: ${bufferToHex(decrypted)}`);
+
+
+        done();
+    });
+
+</script>

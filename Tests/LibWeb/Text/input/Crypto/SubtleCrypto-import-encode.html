@@ -1,0 +1,64 @@
+<script src="../include.js"></script>
+<script>
+    function bufferToHex(buffer) {
+        return [...new Uint8Array(buffer)].map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    const public_key_pem = `-----BEGIN PUBLIC KEY-----
+MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA2aCoD+AVRiMiEv/Gd9z2
+eAq6cdvENBuDvl2G27Sq75/VyGV5rEj+GaB7KBALqRNAMKLBOmUCB95CwEnzl2Th
+heaKcHVhsrEU43sY6VOIImBjrkladGcTosnzexnTWegWJZAn0wp/jQFcCsxkr4gV
+KMbp3GphCL4vFrXu1aXgeWSjObLC5NQsuujLFUtKpkTx2Fwe52Eke3yGpDtpjrx+
+/O5SyeIliU9N+e84droyihBW4WjObhaH3DUWGOdMNpJIC/vGfdUuloHSjMXAGJRp
+MrQD7nmS3P8U0HThrcH4uAoGdLhwNVqqS0MbzageS0ypjpXGqZbPes5X6lYYMU61
+DztRhXZXH6ThW4RpP3lFnU09CLx1XWszBK5s5sZRbQ1Z2EBdg89XBQrSOxU0YPRi
+eehnoxs07NNChRd3dcth8GKXDmMtoh0ml0wbg81AFgceWDVJTbsbGl9GbLb+4FUW
+UkHNKD6eU4O7+mmMDnQduOc28ZfhAUtJx4o+sPq0/hjMgeQd+H8D2www4xj/W40k
+pVpxPh8FQRpOYKPTbWIsQOXmFfav5K87NZDFcj8SQrISbc68JaN8EZlxAJnKBql7
+dF1C//JGzvacVUdYhM95Yt4Fb1wpPaJnXChBb/EZAMaopnhAG2FzTg7Qr0OaYydA
+GLXkCOvO/XI6jmOb867xdG8CAwEAAQ==
+-----END PUBLIC KEY-----`;
+
+    // Function to convert a binary string to an ArrayBuffer
+    function str2ab(str) {
+        const buffer = new Uint8Array(str.length);
+        for (let i = 0; i < str.length; i++) {
+            buffer[i] = str.charCodeAt(i);
+        }
+        return buffer;
+    }
+
+    function importPublicKey(key) {
+        // Define the PEM header and footer for a public key
+        const pemHeader = "-----BEGIN PUBLIC KEY-----";
+        const pemFooter = "-----END PUBLIC KEY-----";
+
+        // Extract the base64-encoded content from the PEM string,
+        // removing the header and footer. The '-1' in the substring function
+        // accounts for the newline character at the end of the header.
+        const pemContents = key.substring(
+            pemHeader.length,
+            key.length - pemFooter.length - 1
+        );
+
+        // Decode the base64-encoded PEM string
+        let pem = atob(pemContents);
+
+        // Decode the extracted base64-encoded content to get the binary data
+        const binaryStr = window.atob(pemContents);
+
+        // Convert the binary string to an ArrayBuffer
+        return str2ab(binaryStr);
+
+    }
+    asyncTest(async done => {
+        const spki_data = importPublicKey(public_key_pem);
+        let pub_key = await window.crypto.subtle.importKey("spki", spki_data, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["encrypt", "wrapKey"]);
+
+        let data = new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+        println(`data: ${bufferToHex(data)}`);
+
+        let encrypted = await window.crypto.subtle.encrypt({ name: "RSA-OAEP" }, pub_key, data);
+        println(`encrypted: ${bufferToHex(encrypted)}`);
+    });
+</script>

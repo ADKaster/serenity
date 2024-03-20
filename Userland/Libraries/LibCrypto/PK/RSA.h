@@ -7,9 +7,12 @@
 
 #pragma once
 
+#include <AK/Function.h>
 #include <AK/Span.h>
 #include <LibCrypto/ASN1/DER.h>
 #include <LibCrypto/BigInt/UnsignedBigInteger.h>
+#include <LibCrypto/Hash/HashManager.h>
+#include <LibCrypto/Hash/MGF1.h>
 #include <LibCrypto/NumberTheory/ModularFunctions.h>
 #include <LibCrypto/PK/PK.h>
 
@@ -253,4 +256,41 @@ public:
         return m_public_key.length();
     }
 };
+
+// https://www.rfc-editor.org/rfc/rfc3447#section-7.1
+class RSAES_OAEP : public RSA {
+public:
+    using MaskGenerationFunction = Function<ErrorOr<ByteBuffer>(Hash::HashKind, ReadonlyBytes, size_t)>;
+
+    // forward rest of the constructor args to RSA
+    template<typename... Args>
+    RSAES_OAEP(Hash::HashKind hash_kind, Args... args)
+        : RSA(args...)
+    {
+        m_hash_manager.initialize(hash_kind);
+    }
+
+    ~RSAES_OAEP() = default;
+
+    virtual void encrypt(ReadonlyBytes in, Bytes& out) override;
+    virtual void decrypt(ReadonlyBytes in, Bytes& out) override;
+
+    void set_mask_generation_function(MaskGenerationFunction mgf) { m_mask_generation_function = move(mgf); }
+    void set_label(ByteBuffer label) { m_label = move(label); }
+
+    size_t max_message_length() { return m_public_key.length() - (2 * m_hash_manager.digest_size()) - 2; }
+
+#ifndef KERNEL
+    virtual ByteString class_name() const override
+    {
+        return "RSAES-OAEP";
+    }
+#endif
+
+private:
+    MaskGenerationFunction m_mask_generation_function = &Hash::MGF1::create_mask;
+    Hash::Manager m_hash_manager;
+    ByteBuffer m_label;
+};
+
 }
