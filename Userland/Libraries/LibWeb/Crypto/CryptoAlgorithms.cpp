@@ -87,7 +87,7 @@ ErrorOr<String> base64_url_uint_encode(::Crypto::UnsignedBigInteger integer)
     for (size_t i = 0; i < data_size; ++i)
         byte_swapped_data.append(data_slice[data_size - i - 1]);
 
-    return encode_base64(byte_swapped_data);
+    return encode_base64url(byte_swapped_data);
 }
 
 WebIDL::ExceptionOr<::Crypto::UnsignedBigInteger> base64_url_uint_decode(JS::Realm& realm, String const& base64_url_string)
@@ -95,7 +95,7 @@ WebIDL::ExceptionOr<::Crypto::UnsignedBigInteger> base64_url_uint_decode(JS::Rea
     auto& vm = realm.vm();
     static_assert(AK::HostIsLittleEndian, "This code assumes little-endian");
 
-    auto base64_bytes_or_error = decode_base64(base64_url_string);
+    auto base64_bytes_or_error = decode_base64url(base64_url_string);
     if (base64_bytes_or_error.is_error()) {
         if (base64_bytes_or_error.error().code() == ENOMEM)
             return vm.throw_completion<JS::InternalError>(vm.error_message(::JS::VM::ErrorMessage::OutOfMemory));
@@ -282,6 +282,28 @@ JS::ThrowCompletionOr<NonnullOwnPtr<AlgorithmParams>> RsaHashedKeyGenParams::fro
     }
 
     return adopt_own<AlgorithmParams>(*new RsaHashedKeyGenParams { name, modulus_length, big_integer_from_api_big_integer(public_exponent), hash.get<HashAlgorithmIdentifier>() });
+}
+
+RsaHashedImportParams::~RsaHashedImportParams() = default;
+
+JS::ThrowCompletionOr<NonnullOwnPtr<AlgorithmParams>> RsaHashedImportParams::from_value(JS::VM& vm, JS::Value value)
+{
+    auto& object = value.as_object();
+
+    auto name_value = TRY(object.get("name"));
+    auto name = TRY(name_value.to_string(vm));
+
+    auto hash_value = TRY(object.get("hash"));
+    auto hash = Variant<Empty, HashAlgorithmIdentifier> { Empty {} };
+    if (hash_value.is_string()) {
+        auto hash_string = TRY(hash_value.to_string(vm));
+        hash = HashAlgorithmIdentifier { hash_string };
+    } else {
+        auto hash_object = TRY(hash_value.to_object(vm));
+        hash = HashAlgorithmIdentifier { hash_object };
+    }
+
+    return adopt_own<AlgorithmParams>(*new RsaHashedImportParams { name, hash.get<HashAlgorithmIdentifier>() });
 }
 
 RsaOaepParams::~RsaOaepParams() = default;

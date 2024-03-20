@@ -88,7 +88,19 @@ struct RsaHashedKeyGenParams : public RsaKeyGenParams {
 };
 
 // https://w3c.github.io/webcrypto/#dfn-RsaHashedImportParams
-using RsaHashedImportParams = RsaHashedKeyGenParams;
+struct RsaHashedImportParams : public AlgorithmParams {
+    virtual ~RsaHashedImportParams() override;
+
+    RsaHashedImportParams(String name, HashAlgorithmIdentifier hash)
+        : AlgorithmParams(move(name))
+        , hash(move(hash))
+    {
+    }
+
+    HashAlgorithmIdentifier hash;
+
+    static JS::ThrowCompletionOr<NonnullOwnPtr<AlgorithmParams>> from_value(JS::VM&, JS::Value);
+};
 
 // https://w3c.github.io/webcrypto/#dfn-RsaOaepParams
 struct RsaOaepParams : public AlgorithmParams {
